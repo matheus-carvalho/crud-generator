@@ -1,0 +1,16 @@
+{
+    "name": "matheuscarvalho/crudgenerator",
+    "description": "Generate a CRUD with Model, Controller, Routes and Views based on given Migration.",
+    "authors": [
+        {
+            "name": "Matheus Carvalho",
+            "email": "matheuscarvalho.mcdc@gmail.com"
+        }
+    ],
+    "require": {},
+    "autoload": {
+        "psr-4": {
+            "matheuscarvalho\\crudgenerator\\": "src/"
+        }
+    }
+}
