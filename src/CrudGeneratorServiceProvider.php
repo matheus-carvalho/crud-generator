@@ -6,6 +6,13 @@ use Illuminate\Support\ServiceProvider;
 use Matheuscarvalho\Crudgenerator\Src\Commands\CrudGenerator;
 
 class CrudGeneratorServiceProvider extends ServiceProvider {
+    public function boot()
+    {
+        $this->publishes([
+            __DIR__.'/css' => base_path('public/css'),
+        ]);
+    }
+    
     public function register()
     {
         $this->app->singleton('command.generate:crud', function () {

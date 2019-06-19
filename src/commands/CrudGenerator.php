@@ -97,15 +97,17 @@ class CrudGenerator extends Command
         $headers .= "\n\nnamespace App\Models;";
         $headers .= "\n\nuse Illuminate\Database\Eloquent\Model;";
         $headers .= "\n\nclass $this->modelName extends Model\n{\n";
+
         $tableLine = "\tprotected \$table = ";
         $fillableStart = "\n\n\tprotected \$fillable = [\n";
         $fillableEnd = "\t];";
 
-        // your new stuff
+        // Your new stuff
         $insert = $headers;
         $insert .= $tableLine . "'$this->tableName';";
         $insert .= $fillableStart;
-        // add the fields
+
+        // Add the fields
         foreach($this->fieldList as $field) {
             $fillableItem = $this->getStringBetween($field, "'", "'");
             if ($fillableItem != "id" && $fillableItem != "")
@@ -147,13 +149,21 @@ class CrudGenerator extends Command
         $headers .= "\n\nclass $this->controllerName extends Controller\n{\n";
 
         // Add Methods
+        // Index
         $indexMethod = "\tpublic function index() { ";
         $indexMethod .= "\n\t\t\$items = $this->modelName::all();";
         $indexMethod .= "\n\t\treturn view('$this->viewFolder.index', compact('items'));";
         $indexMethod .= "\n\t}";
 
+        // Create
+        $createMethod = "\n\n\tpublic function create() { ";
+//        $createMethod .= "\n\t\t\$items = $this->modelName::all();";
+        $createMethod .= "\n\t\treturn view('$this->viewFolder.create', compact(''));";
+        $createMethod .= "\n\t}";
+
         $insert  = $headers;
         $insert .= $indexMethod;
+        $insert .= $createMethod;
         $insert .= "\n}";
 
         file_put_contents($filePath, $insert);
@@ -174,20 +184,41 @@ class CrudGenerator extends Command
 
     public function createViewIndex($fullPath)
     {
-        $content  = "<title>$this->modelName</title>\n";
+        $content  = "<link href='css/crudstyle.css' rel='stylesheet'>";
+        $content .= "<title>$this->modelName</title>\n";
         $content .= "\n<div class='container'>";
         $content .= "\n\t<a href=\"{{ route('create$this->modelName') }}\" class='btn btn-success'> Novo</a>";
         $content .= "\n\t<table class='table'>";
-        $content .= "\n\t\t<tr>";
+        $content .= "\n\t\t<thead>";
+        $content .= "\n\t\t\t<tr>";
 
-        $content .= "\n\t\t\t<th>Grupo de Assuntos</th>";
+        $modelItems = [];
+        // Add one table header for each item on Model List
+        foreach($this->fieldList as $field) {
+            $modelItem = $this->getStringBetween($field, "'", "'");
+            if ($modelItem != "id" && $modelItem != "") {
+                $content .= "\n\t\t\t\t<th>" . ucfirst($modelItem) . "</th>";
+                array_push($modelItems, $modelItem);
+            }
+        }
+        $content .= "\n\t\t\t\t<th>Ações</th>";
 
-        $content .= "\n\t\t</tr>";
-        $content .= "\n\t\t@foreach (\$items as \$item)";
-        $content .= "\n\t\t<tr>";
-        $content .= "\n\t\t\t<td>{{\$item->nome}}</td>";
-        $content .= "\n\t\t</tr>";
-        $content .= "\n\t\t@endforeach";
+        $content .= "\n\t\t\t</tr>";
+        $content .= "\n\t\t</thead>";
+        $content .= "\n\t\t<tbody>";
+        $content .= "\n\t\t\t@foreach (\$items as \$item)";
+        $content .= "\n\t\t\t<tr>";
+        // Add one TD for each item on Model List
+        foreach ($modelItems as $modelItem) {
+            $content .= "\n\t\t\t\t<td>{{\$item->$modelItem}}</td>";
+        }
+        $content .= "\n\t\t\t\t<td>";
+        $content .= "\n\t\t\t\t\t<a href=\"{{route('edit$this->modelName', \$item->id)}}\" class='btn btn-warning' title='Editar'><i class='glyphicon glyphicon-edit'></i></a>";
+        $content .= "\n\t\t\t\t\t<a href=\"{{route('delete$this->modelName', \$item->id)}}\" class='btn btn-danger' title='Excluir'><i class='glyphicon glyphicon-remove-circle'></i></a>";
+        $content .= "\n\t\t\t\t</td>";
+        $content .= "\n\t\t\t</tr>";
+        $content .= "\n\t\t\t@endforeach";
+        $content .= "\n\t\t</tbody>";
         $content .= "\n\t</table>";
         $content .= "\n</div>";
 
