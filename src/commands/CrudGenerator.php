@@ -146,7 +146,21 @@ class CrudGenerator extends Command
         $headers  = "<?php";
         $headers .= "\n\nnamespace App\Http\Controllers;";
         $headers .= "\n\nuse App\Models\\$this->modelName;";
-//        $headers .= "\nuse Illuminate\Http\Request;";
+
+        // check if exists foreign keys to fill the create view with model items
+        $foreignKeys = $this->checkForeignKeys();
+        if ($foreignKeys) {
+            $fk_contents = '';
+            $fk_arrays = '';
+            foreach ($foreignKeys as $fk) {
+                $headers .= "\nuse App\Models\\$fk;";
+
+                $fk_array = lcfirst($fk) . 's';
+                $fk_arrays .= "'$fk_array'" . ", ";
+                $fk_contents .= "\n\t\t\$$fk_array = $fk::all();";
+            }
+        }
+
         $headers .= "\n\nclass $this->controllerName extends Controller\n{\n";
 
         // Add Methods
@@ -158,13 +172,19 @@ class CrudGenerator extends Command
 
         // Create
         $createMethod  = "\n\n\tpublic function create() { ";
-        $createMethod .= "\n\t\treturn view('$this->viewFolder.create', compact(''));";
+        $createMethod .= $fk_contents;
+        $createMethod .= "\n\t\treturn view('$this->viewFolder.create', compact(";
+        $createMethod .= rtrim($fk_arrays, ", ");
+        $createMethod .= "));";
         $createMethod .= "\n\t}";
 
         // Edit
         $editMethod  = "\n\n\tpublic function edit(\$id) { ";
         $editMethod .= "\n\t\t\$item = $this->modelName::find(\$id);";
-        $editMethod .= "\n\t\treturn view('$this->viewFolder.create', compact('item'));";
+        $editMethod .= $fk_contents;
+        $editMethod .= "\n\t\treturn view('$this->viewFolder.create', compact(";
+        $editMethod .= $fk_arrays;
+        $editMethod .= "'item'));";
         $editMethod .= "\n\t}";
 
         // Store
@@ -246,7 +266,12 @@ class CrudGenerator extends Command
         foreach($this->fieldList as $field) {
             $modelItem = $this->getStringBetween($field, "'", "'");
             if ($modelItem != "id" && $modelItem != "") {
-                $content .= "\n\t\t\t\t<th>" . ucfirst($modelItem) . "</th>";
+                if (strpos($modelItem, '_id') !== false) {
+                    $title = rtrim($modelItem, "_id");
+                    $content .= "\n\t\t\t\t<th>" . ucfirst($title) . "</th>";
+                } else {
+                    $content .= "\n\t\t\t\t<th>" . ucfirst($modelItem) . "</th>";
+                }
                 array_push($modelItems, $modelItem);
             }
         }
@@ -304,9 +329,16 @@ class CrudGenerator extends Command
         foreach($this->fieldList as $field) {
             $modelItem = $this->getStringBetween($field, "'", "'");
             if ($modelItem != "id" && $modelItem != "") {
-                $content .= "\n\t\t<div>".ucfirst($modelItem)."</div>";
+                if (strpos($modelItem, '_id') !== false) {
+                    $title = rtrim($modelItem, "_id");
+                    $content .= "\n\t\t<div>".ucfirst($title)."</div>";
+                } else {
+                    $content .= "\n\t\t<div>".ucfirst($modelItem)."</div>";
+                }
                 $content .= "\n\t\t<div>";
-                $content .= "\n\t\t\t<input name='$modelItem' value=\"{{isset(\$item) ? \$item->$modelItem : old('$modelItem')}}\">";
+                //DE ACORDO COM O TIPO DO CAMPO NA MIGRATION, CRIAR UM INPUT DIFERENTE
+                $content .= $this->getInputType($field, $modelItem);
+//                $content .= "\n\t\t\t<input name='$modelItem' value=\"{{isset(\$item) ? \$item->$modelItem : old('$modelItem')}}\">";
                 $content .= "\n\t\t</div>";
             }
         }
@@ -323,5 +355,53 @@ class CrudGenerator extends Command
     {
         $sub = substr($str, strpos($str,$from)+strlen($from),strlen($str));
         return substr($sub,0,strpos($sub,$to));
+    }
+
+    public function getInputType($field, $modelItem)
+    {
+        //$modelItem = category_id
+        //$field = $table->unsignedInteger('category_id')->nullable();
+        $field = $this->getStringBetween($field, ">", "(");
+        switch ($field) {
+            case 'integer':
+                return "\n\t\t\t<input type='number' name='$modelItem' value=\"{{isset(\$item) ? \$item->$modelItem : old('$modelItem')}}\">";
+                break;
+            case 'double':
+                return "\n\t\t\t<input type='number' step='0.01' name='$modelItem' value=\"{{isset(\$item) ? \$item->$modelItem : old('$modelItem')}}\">";
+                break;
+            case 'string':
+                return "\n\t\t\t<input type='text' name='$modelItem' value=\"{{isset(\$item) ? \$item->$modelItem : old('$modelItem')}}\">";
+                break;
+            case 'unsignedInteger':
+                $fk_array = str_replace("_id", "s", $modelItem);
+                $ret  = "\n\t\t\t<select name='$modelItem'>";
+                $ret .= "\n\t\t\t\t<option value='0'>Select the ".rtrim($modelItem, "_id")."</option>";
+                $ret .= "\n\t\t\t\t@foreach(\$$fk_array as \$fk)";
+                $ret .= "\n\t\t\t\t\t<option value=\"{{\$fk->id}}\" @if(isset(\$item) && \$fk->id == \$item->$modelItem) selected @endif>";
+                $ret .= "\n\t\t\t\t\t\t{{\$fk->description}}";
+                $ret .= "\n\t\t\t\t\t</option>";
+                $ret .= "\n\t\t\t\t@endforeach";
+                $ret .= "\n\t\t\t</select>";
+                return $ret;
+                break;
+            default:
+                return "\n\t\t\t<input type='text' name='$modelItem' value=\"{{isset(\$item) ? \$item->$modelItem : old('$modelItem')}}\">";
+                break;
+        }
+    }
+
+    public function checkForeignKeys()
+    {
+        $models = [];
+        foreach ($this->fieldList as $field) {
+            $type = $this->getStringBetween($field, ">", "(");
+            if ($type == 'unsignedInteger') {
+                $modelName = $this->getStringBetween($field, "'", "'");
+                $modelName = rtrim($modelName, '_id');
+                $modelName = ucfirst($modelName);
+                array_push($models, $modelName);
+            }
+        }
+        return $models;
     }
 }
