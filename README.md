@@ -21,6 +21,11 @@ Matheuscarvalho\Crudgenerator\Src\CrudGeneratorServiceProvider::class,
 ],
 ```
 
+## Publish the CSS folder
+```bash
+php artisan vendor:publish
+```
+
 ## Usage
 
 1. Create your migration and fill with desired fields.

@@ -190,18 +190,28 @@ class CrudGenerator extends Command
 
         // Create
         $createMethod  = "\n\n\tpublic function create() { ";
-        $createMethod .= $fk_contents;
-        $createMethod .= "\n\t\treturn view('$this->viewFolder.create', compact(";
-        $createMethod .= rtrim($fk_arrays, ", ");
-        $createMethod .= "));";
+        if ($foreignKeys) {
+            $createMethod .= $fk_contents;
+        }
+        $createMethod .= "\n\t\treturn view('$this->viewFolder.create'";
+        if ($foreignKeys) {
+            $createMethod .= ", compact(";
+            $createMethod .= rtrim($fk_arrays, ", ");
+            $createMethod .= ")";
+        }
+        $createMethod .= ");";
         $createMethod .= "\n\t}";
 
         // Edit
         $editMethod  = "\n\n\tpublic function edit(\$id) { ";
         $editMethod .= "\n\t\t\$item = $this->modelName::find(\$id);";
-        $editMethod .= $fk_contents;
+        if ($foreignKeys) {
+            $editMethod .= $fk_contents;
+        }
         $editMethod .= "\n\t\treturn view('$this->viewFolder.create', compact(";
-        $editMethod .= $fk_arrays;
+        if ($foreignKeys) {
+            $editMethod .= $fk_arrays;
+        }
         $editMethod .= "'item'));";
         $editMethod .= "\n\t}";
 
