@@ -114,6 +114,18 @@ class CrudGenerator extends Command
                 $insert .= "\t\t'".$fillableItem."',\n";
         }
         $insert .= $fillableEnd;
+
+        // check if exists foreign keys to make the navigation properties
+        $foreignKeys = $this->checkForeignKeys();
+        if ($foreignKeys) {
+            foreach ($foreignKeys as $fk) {
+                $foreign_id = lcfirst($fk) . "_id";
+                $insert .= "\n\n\tpublic function $fk(){";
+                $insert .= "\n\t\treturn \$this->belongsTo('App\\Models\\$fk', '$foreign_id', 'id');";
+                $insert .= "\n\t}";
+            }
+        }
+
         $insert .= "\n}";
 
         file_put_contents($filePath, $insert);
@@ -268,9 +280,11 @@ class CrudGenerator extends Command
             if ($modelItem != "id" && $modelItem != "") {
                 if (strpos($modelItem, '_id') !== false) {
                     $title = rtrim($modelItem, "_id");
+                    $title = str_replace("_", " ", $title);
                     $content .= "\n\t\t\t\t<th>" . ucfirst($title) . "</th>";
                 } else {
-                    $content .= "\n\t\t\t\t<th>" . ucfirst($modelItem) . "</th>";
+                    $title = str_replace("_", " ", $modelItem);
+                    $content .= "\n\t\t\t\t<th>" . ucfirst($title) . "</th>";
                 }
                 array_push($modelItems, $modelItem);
             }
@@ -284,7 +298,17 @@ class CrudGenerator extends Command
         $content .= "\n\t\t\t<tr>";
         // Add one TD for each item on Model List
         foreach ($modelItems as $modelItem) {
-            $content .= "\n\t\t\t\t<td>{{\$item->$modelItem}}</td>";
+            if (strpos($modelItem, '_id') !== false) {
+                $this->info('modelAntes');
+                $this->info($modelItem);
+                $navigation = rtrim($modelItem, "_id");
+                $navigation = ucfirst($navigation);
+                $this->info('navigation');
+                $this->info($navigation);
+                $content .= "\n\t\t\t\t<td>{{\$item->".$navigation."->description}}</td>";
+            } else {
+                $content .= "\n\t\t\t\t<td>{{\$item->$modelItem}}</td>";
+            }
         }
         $content .= "\n\t\t\t\t<td>";
         $content .= "\n\t\t\t\t\t<a style='float: left;' href=\"{{route('edit$this->modelName', \$item->id)}}\" class='btn btn-warning' title='Editar'>E</a>";
@@ -331,14 +355,14 @@ class CrudGenerator extends Command
             if ($modelItem != "id" && $modelItem != "") {
                 if (strpos($modelItem, '_id') !== false) {
                     $title = rtrim($modelItem, "_id");
+                    $title = str_replace("_", " ", $title);
                     $content .= "\n\t\t<div>".ucfirst($title)."</div>";
                 } else {
-                    $content .= "\n\t\t<div>".ucfirst($modelItem)."</div>";
+                    $title = str_replace("_", " ", $modelItem);
+                    $content .= "\n\t\t<div>".ucfirst($title)."</div>";
                 }
                 $content .= "\n\t\t<div>";
-                //DE ACORDO COM O TIPO DO CAMPO NA MIGRATION, CRIAR UM INPUT DIFERENTE
                 $content .= $this->getInputType($field, $modelItem);
-//                $content .= "\n\t\t\t<input name='$modelItem' value=\"{{isset(\$item) ? \$item->$modelItem : old('$modelItem')}}\">";
                 $content .= "\n\t\t</div>";
             }
         }
@@ -346,7 +370,6 @@ class CrudGenerator extends Command
         $content .= "\n\n\t\t<button class='btn btn-success'>Enviar</button>";
         $content .= "\n\t</form>";
         $content .= "\n</div>";
-
 
         file_put_contents($fullPath."/create.blade.php", $content);
     }
@@ -371,6 +394,15 @@ class CrudGenerator extends Command
                 break;
             case 'string':
                 return "\n\t\t\t<input type='text' name='$modelItem' value=\"{{isset(\$item) ? \$item->$modelItem : old('$modelItem')}}\">";
+                break;
+            case 'date':
+                return "\n\t\t\t<input type='date' name='$modelItem' value=\"{{isset(\$item) ? \$item->$modelItem : old('$modelItem')}}\">";
+                break;
+            case 'dateTime':
+                return "\n\t\t\t<input type='datetime-local' name='$modelItem' value=\"{{isset(\$item) ? str_replace(' ', 'T', \$item->$modelItem) : old('$modelItem')}}\">";
+                break;
+            case 'time':
+                return "\n\t\t\t<input type='time' name='$modelItem' value=\"{{isset(\$item) ? \$item->$modelItem : old('$modelItem')}}\">";
                 break;
             case 'unsignedInteger':
                 $fk_array = str_replace("_id", "s", $modelItem);
