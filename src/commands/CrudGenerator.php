@@ -313,8 +313,8 @@ class CrudGenerator extends Command
             }
         }
         $content .= "\n\t\t\t\t<td>";
-        $content .= "\n\t\t\t\t\t<a style='float: left;' href=\"{{route('edit$this->modelName', \$item->id)}}\" class='btn btn-warning' title='Editar'>E</a>";
-        $content .= "\n\t\t\t\t\t<form title='Excluir' method='post' action=\"{{route('delete$this->modelName', \$item->id)}}\">";
+        $content .= "\n\t\t\t\t\t<a style='float: left;' href=\"{{route('edit$this->modelName', \$item->id)}}\" class='btn btn-warning' title='Edit'>E</a>";
+        $content .= "\n\t\t\t\t\t<form title='Delete' method='post' action=\"{{route('delete$this->modelName', \$item->id)}}\">";
         $content .= "\n\t\t\t\t\t\t{!! method_field('DELETE') !!} {!! csrf_field() !!}";
         $content .= "\n\t\t\t\t\t\t<button class='btn btn-danger'> X </button>";
         $content .= "\n\t\t\t\t\t</form>";
@@ -369,7 +369,7 @@ class CrudGenerator extends Command
             }
         }
 
-        $content .= "\n\n\t\t<button class='btn btn-success'>Enviar</button>";
+        $content .= "\n\n\t\t<button class='btn btn-success'>Save</button>";
         $content .= "\n\t</form>";
         $content .= "\n</div>";
 

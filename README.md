@@ -286,7 +286,7 @@ Route::delete('/product/delete/{id}', 'ProductController@destroy')->name('delete
 			</select>
 		</div>
 
-		<button class='btn btn-success'>Enviar</button>
+		<button class='btn btn-success'>Save</button>
 	</form>
 </div>
 ```
@@ -336,8 +336,8 @@ Route::delete('/product/delete/{id}', 'ProductController@destroy')->name('delete
 				<td>{{$item->time}}</td>
 				<td>{{$item->FabricationCountry->description}}</td>
 				<td>
-					<a style='float: left;' href="{{route('editProduct', $item->id)}}" class='btn btn-warning' title='Editar'>E</a>
-					<form title='Excluir' method='post' action="{{route('deleteProduct', $item->id)}}">
+					<a style='float: left;' href="{{route('editProduct', $item->id)}}" class='btn btn-warning' title='Edit'>E</a>
+					<form title='Delete' method='post' action="{{route('deleteProduct', $item->id)}}">
 						{!! method_field('DELETE') !!} {!! csrf_field() !!}
 						<button class='btn btn-danger'> X </button>
 					</form>
