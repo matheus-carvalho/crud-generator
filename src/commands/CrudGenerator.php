@@ -146,24 +146,68 @@ class CrudGenerator extends Command
         $headers  = "<?php";
         $headers .= "\n\nnamespace App\Http\Controllers;";
         $headers .= "\n\nuse App\Models\\$this->modelName;";
+//        $headers .= "\nuse Illuminate\Http\Request;";
         $headers .= "\n\nclass $this->controllerName extends Controller\n{\n";
 
         // Add Methods
         // Index
-        $indexMethod = "\tpublic function index() { ";
+        $indexMethod  = "\tpublic function index() { ";
         $indexMethod .= "\n\t\t\$items = $this->modelName::all();";
         $indexMethod .= "\n\t\treturn view('$this->viewFolder.index', compact('items'));";
         $indexMethod .= "\n\t}";
 
         // Create
-        $createMethod = "\n\n\tpublic function create() { ";
-//        $createMethod .= "\n\t\t\$items = $this->modelName::all();";
+        $createMethod  = "\n\n\tpublic function create() { ";
         $createMethod .= "\n\t\treturn view('$this->viewFolder.create', compact(''));";
         $createMethod .= "\n\t}";
+
+        // Edit
+        $editMethod  = "\n\n\tpublic function edit(\$id) { ";
+        $editMethod .= "\n\t\t\$item = $this->modelName::find(\$id);";
+        $editMethod .= "\n\t\treturn view('$this->viewFolder.create', compact('item'));";
+        $editMethod .= "\n\t}";
+
+        // Store
+        $storeMethod   = "\n\n\tpublic function store() { ";
+        $storeMethod  .= "\n\t\t\$data = request()->all();";
+        $storeMethod  .= "\n\t\t\$insert = $this->modelName::create(\$data);";
+        $storeMethod  .= "\n\t\tif (\$insert) {";
+        $storeMethod  .= "\n\t\t\treturn redirect()->route('index$this->modelName')->with('message', '$this->modelName inserted successfully');";
+        $storeMethod  .= "\n\t\t} else {";
+        $storeMethod  .= "\n\t\t\treturn redirect()->back()->with('error', 'Insertion error');";
+        $storeMethod  .= "\n\t\t}";
+        $storeMethod  .= "\n\t}";
+
+        // Update
+        $updateMethod  = "\n\n\tpublic function update(\$id) { ";
+        $updateMethod  .= "\n\t\t\$data = request()->all();";
+        $updateMethod  .= "\n\t\t\$item = $this->modelName::find(\$id);";
+        $updateMethod  .= "\n\t\t\$update = \$item->update(\$data);";
+        $updateMethod  .= "\n\t\tif (\$update) {";
+        $updateMethod  .= "\n\t\t\treturn redirect()->route('index$this->modelName');";
+        $updateMethod  .= "\n\t\t} else {";
+        $updateMethod  .= "\n\t\t\treturn redirect()->back();";
+        $updateMethod  .= "\n\t\t}";
+        $updateMethod  .= "\n\t}";
+
+        // Delete
+        $deleteMethod  = "\n\n\tpublic function destroy(\$id) { ";
+        $deleteMethod .= "\n\t\t\$item = $this->modelName::find(\$id);";
+        $deleteMethod  .= "\n\t\t\$delete = \$item->delete();";
+        $deleteMethod  .= "\n\t\tif (\$delete) {";
+        $deleteMethod  .= "\n\t\t\treturn redirect()->route('index$this->modelName')->with('message', '$this->modelName deleted successfully');";
+        $deleteMethod  .= "\n\t\t} else {";
+        $deleteMethod  .= "\n\t\t\treturn redirect()->back()->with('error', 'Deletion error');";
+        $deleteMethod  .= "\n\t\t}";
+        $deleteMethod  .= "\n\t}";
 
         $insert  = $headers;
         $insert .= $indexMethod;
         $insert .= $createMethod;
+        $insert .= $editMethod;
+        $insert .= $storeMethod;
+        $insert .= $updateMethod;
+        $insert .= $deleteMethod;
         $insert .= "\n}";
 
         file_put_contents($filePath, $insert);
@@ -184,11 +228,16 @@ class CrudGenerator extends Command
 
     public function createViewIndex($fullPath)
     {
-        $content  = "<link href='css/crudstyle.css' rel='stylesheet'>";
-        $content .= "<title>$this->modelName</title>\n";
+        $content  = "<link href=\"{{asset('css/crudstyle.css')}}\" rel='stylesheet'>";
+        $content .= "\n\n<title>$this->modelName</title>\n";
         $content .= "\n<div class='container'>";
         $content .= "\n\t<a href=\"{{ route('create$this->modelName') }}\" class='btn btn-success'> Novo</a>";
-        $content .= "\n\t<table class='table'>";
+        $content .= "\n\n\t@if (session('message'))";
+        $content .= "\n\t\t<div class='alert alert-success'>";
+        $content .= "\n\t\t\t{{ session('message') }}";
+        $content .= "\n\t\t</div>";
+        $content .= "\n\t@endif";
+        $content .= "\n\n\t<table class='table'>";
         $content .= "\n\t\t<thead>";
         $content .= "\n\t\t\t<tr>";
 
@@ -213,8 +262,11 @@ class CrudGenerator extends Command
             $content .= "\n\t\t\t\t<td>{{\$item->$modelItem}}</td>";
         }
         $content .= "\n\t\t\t\t<td>";
-        $content .= "\n\t\t\t\t\t<a href=\"{{route('edit$this->modelName', \$item->id)}}\" class='btn btn-warning' title='Editar'><i class='glyphicon glyphicon-edit'></i></a>";
-        $content .= "\n\t\t\t\t\t<a href=\"{{route('delete$this->modelName', \$item->id)}}\" class='btn btn-danger' title='Excluir'><i class='glyphicon glyphicon-remove-circle'></i></a>";
+        $content .= "\n\t\t\t\t\t<a style='float: left;' href=\"{{route('edit$this->modelName', \$item->id)}}\" class='btn btn-warning' title='Editar'>E</a>";
+        $content .= "\n\t\t\t\t\t<form title='Excluir' method='post' action=\"{{route('delete$this->modelName', \$item->id)}}\">";
+        $content .= "\n\t\t\t\t\t\t{!! method_field('DELETE') !!} {!! csrf_field() !!}";
+        $content .= "\n\t\t\t\t\t\t<button class='btn btn-danger'> X </button>";
+        $content .= "\n\t\t\t\t\t</form>";
         $content .= "\n\t\t\t\t</td>";
         $content .= "\n\t\t\t</tr>";
         $content .= "\n\t\t\t@endforeach";
@@ -227,7 +279,43 @@ class CrudGenerator extends Command
 
     public function createViewCreate($fullPath)
     {
-        $content = 'create';
+        $content  = "<link href=\"{{asset('css/crudstyle.css')}}\" rel='stylesheet'>";
+        $content .= "\n\n<title>Create $this->modelName</title>\n";
+        $content .= "\n<div>";
+        $content .= "\n\t<div>";
+        $content .= "\n\t\t<ul class='breadcrumb'>";
+        $content .= "\n\t\t\t<li><a href=\"{{ route('index$this->modelName') }}\">$this->modelName</a></li>";
+        $content .= "\n\t\t\t<li class='active'>Create $this->modelName</li>";
+        $content .= "\n\t\t</ul>";
+        $content .= "\n\t</div>";
+        $content .= "\n</div>";
+        $content .= "\n\n<div>";
+        $content .= "\n\t<form class='container' method='post' ";
+        $content .= "\n\t\t@if(isset(\$item))";
+        $content .= "\n\t\t\taction=\"{{ route('update$this->modelName', \$item->id) }}\">";
+        $content .= "\n\t\t\t{!! method_field('PUT') !!}";
+        $content .= "\n\t\t@else";
+        $content .= "\n\t\t\taction=\"{{ route('store$this->modelName') }}\">";
+        $content .= "\n\t\t@endif";
+        $content .= "\n\t\t{!! csrf_field() !!}";
+
+        // Fields of Model
+        // Add one label and input for each item on Model List
+        foreach($this->fieldList as $field) {
+            $modelItem = $this->getStringBetween($field, "'", "'");
+            if ($modelItem != "id" && $modelItem != "") {
+                $content .= "\n\t\t<div>".ucfirst($modelItem)."</div>";
+                $content .= "\n\t\t<div>";
+                $content .= "\n\t\t\t<input name='$modelItem' value=\"{{isset(\$item) ? \$item->$modelItem : old('$modelItem')}}\">";
+                $content .= "\n\t\t</div>";
+            }
+        }
+
+        $content .= "\n\n\t\t<button class='btn btn-success'>Enviar</button>";
+        $content .= "\n\t</form>";
+        $content .= "\n</div>";
+
+
         file_put_contents($fullPath."/create.blade.php", $content);
     }
 
