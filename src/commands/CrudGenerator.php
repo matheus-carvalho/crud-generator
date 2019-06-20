@@ -119,7 +119,12 @@ class CrudGenerator extends Command
         $foreignKeys = $this->checkForeignKeys();
         if ($foreignKeys) {
             foreach ($foreignKeys as $fk) {
-                $foreign_id = lcfirst($fk) . "_id";
+                $array = preg_split('/(?=[A-Z])/', $fk);
+                $foreign_id = implode('_', $array);
+                $foreign_id = strtolower($foreign_id);
+                $foreign_id = ltrim($foreign_id, $foreign_id[0]);
+                $foreign_id = $foreign_id . "_id";
+
                 $insert .= "\n\n\tpublic function $fk(){";
                 $insert .= "\n\t\treturn \$this->belongsTo('App\\Models\\$fk', '$foreign_id', 'id');";
                 $insert .= "\n\t}";
@@ -299,12 +304,9 @@ class CrudGenerator extends Command
         // Add one TD for each item on Model List
         foreach ($modelItems as $modelItem) {
             if (strpos($modelItem, '_id') !== false) {
-                $this->info('modelAntes');
-                $this->info($modelItem);
                 $navigation = rtrim($modelItem, "_id");
-                $navigation = ucfirst($navigation);
-                $this->info('navigation');
-                $this->info($navigation);
+                $navigation = str_replace('_', '', ucwords($navigation, '_'));
+
                 $content .= "\n\t\t\t\t<td>{{\$item->".$navigation."->description}}</td>";
             } else {
                 $content .= "\n\t\t\t\t<td>{{\$item->$modelItem}}</td>";
@@ -405,9 +407,13 @@ class CrudGenerator extends Command
                 return "\n\t\t\t<input type='time' name='$modelItem' value=\"{{isset(\$item) ? \$item->$modelItem : old('$modelItem')}}\">";
                 break;
             case 'unsignedInteger':
-                $fk_array = str_replace("_id", "s", $modelItem);
+                $PascalCaseModel = str_replace("_id", "", $modelItem);
                 $ret  = "\n\t\t\t<select name='$modelItem'>";
-                $ret .= "\n\t\t\t\t<option value='0'>Select the ".rtrim($modelItem, "_id")."</option>";
+                $ret .= "\n\t\t\t\t<option value='0'>Select the ". str_replace('_', ' ', ucwords($PascalCaseModel, '_')) ."</option>";
+
+                $PascalCaseModel = $PascalCaseModel . "s";
+                $fk_array = str_replace('_', '', ucwords($PascalCaseModel, '_'));
+                $fk_array = lcfirst($fk_array);
                 $ret .= "\n\t\t\t\t@foreach(\$$fk_array as \$fk)";
                 $ret .= "\n\t\t\t\t\t<option value=\"{{\$fk->id}}\" @if(isset(\$item) && \$fk->id == \$item->$modelItem) selected @endif>";
                 $ret .= "\n\t\t\t\t\t\t{{\$fk->description}}";
@@ -430,7 +436,7 @@ class CrudGenerator extends Command
             if ($type == 'unsignedInteger') {
                 $modelName = $this->getStringBetween($field, "'", "'");
                 $modelName = rtrim($modelName, '_id');
-                $modelName = ucfirst($modelName);
+                $modelName = str_replace('_', '', ucwords($modelName, '_'));
                 array_push($models, $modelName);
             }
         }
