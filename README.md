@@ -83,9 +83,10 @@ The crud-generator uses the 'unsignedInteger' type to search foreign keys in mig
 
 ## Options
 
-Command | required | Description
+Option | params | Description
 ------------ | -------- | -------------
---model-name | yes | The name used by crud-generator to create the files
+--model-name | string | The name used by crud-generator to create the files
+--without-style | none | A boolean option which disable the default style. By default, the generated views comes with a simple css (that uses bootstrap classes) to style basically the pages.
 
 ## Output
 
@@ -302,7 +303,7 @@ Route::delete('/product/delete/{id}', 'ProductController@destroy')->name('delete
 <title>Product</title>
 
 <div class='container'>
-	<a href="{{ route('createProduct') }}" class='btn btn-success'> Novo</a>
+	<a href="{{ route('createProduct') }}" class='btn btn-success'> New</a>
 
 	@if (session('message'))
 		<div class='alert alert-success'>
@@ -350,3 +351,10 @@ Route::delete('/product/delete/{id}', 'ProductController@destroy')->name('delete
 ```
 
 </details>
+
+## Upcoming updates
+
+Option | params | Description
+------------ | -------- | -------------
+--language | br, en | Specifies the language of files generated. Default = en.
+--pagination | none | A boolean option which indicates the index view must have pagination.

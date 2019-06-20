@@ -12,7 +12,8 @@ class CrudGenerator extends Command
      * @var string
      */
     protected $signature = 'generate:crud 
-                                {--model-name= : Name of the Model} 
+                                {--model-name= : Name of the Model}
+                                {--without-style : Disable the default style} 
                                 {migration : Full Name of the Migration to be used as base}';
 
     /**
@@ -265,10 +266,13 @@ class CrudGenerator extends Command
 
     public function createViewIndex($fullPath)
     {
-        $content  = "<link href=\"{{asset('css/crudstyle.css')}}\" rel='stylesheet'>";
+        $content  = "";
+        if (!$this->option('without-style')) {
+            $content  .= "<link href=\"{{asset('css/crudstyle.css')}}\" rel='stylesheet'>";
+        }
         $content .= "\n\n<title>$this->modelName</title>\n";
         $content .= "\n<div class='container'>";
-        $content .= "\n\t<a href=\"{{ route('create$this->modelName') }}\" class='btn btn-success'> Novo</a>";
+        $content .= "\n\t<a href=\"{{ route('create$this->modelName') }}\" class='btn btn-success'> New</a>";
         $content .= "\n\n\t@if (session('message'))";
         $content .= "\n\t\t<div class='alert alert-success'>";
         $content .= "\n\t\t\t{{ session('message') }}";
@@ -330,7 +334,10 @@ class CrudGenerator extends Command
 
     public function createViewCreate($fullPath)
     {
-        $content  = "<link href=\"{{asset('css/crudstyle.css')}}\" rel='stylesheet'>";
+        $content = "";
+        if (!$this->option('without-style')) {
+            $content  .= "<link href=\"{{asset('css/crudstyle.css')}}\" rel='stylesheet'>";
+        }
         $content .= "\n\n<title>Create $this->modelName</title>\n";
         $content .= "\n<div>";
         $content .= "\n\t<div>";
