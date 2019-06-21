@@ -12,5 +12,19 @@
         "psr-4": {
             "Matheuscarvalho\\Crudgenerator\\": "src/"
         }
-    }
+    },
+	"scripts": {
+      "post-install-cmd": [
+        "php artisan config:cache",
+        "composer update",
+		"php artisan config:cache",
+		"php artisan vendor:publish"
+      ],
+      "post-update-cmd": [
+        "php artisan config:cache",
+        "composer update",
+		"php artisan config:cache",
+		"php artisan vendor:publish"
+      ]
+    },
 }
