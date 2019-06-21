@@ -23,6 +23,7 @@ Matheuscarvalho\Crudgenerator\Src\CrudGeneratorServiceProvider::class,
 
 ## Publish the CSS folder
 ```bash
+php artisan config:cache
 php artisan vendor:publish
 ```
 
