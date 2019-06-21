@@ -14,15 +14,11 @@
         }
     },
 	"scripts": {
-      "post-install-cmd": [
-        "php artisan config:cache",
-        "composer update",
+      "post-package-install": [
 		"php artisan config:cache",
 		"php artisan vendor:publish"
       ],
-      "post-update-cmd": [
-        "php artisan config:cache",
-        "composer update",
+      "post-autoload-dump": [
 		"php artisan config:cache",
 		"php artisan vendor:publish"
       ]
