@@ -10,6 +10,7 @@ class CrudGeneratorServiceProvider extends ServiceProvider {
     {
         $this->publishes([
             __DIR__.'/css' => base_path('public/css'),
+            __DIR__.'/config' => config_path(),
         ]);
     }
     

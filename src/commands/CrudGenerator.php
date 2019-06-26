@@ -14,6 +14,7 @@ class CrudGenerator extends Command
     protected $signature = 'generate:crud 
                                 {--model-name= : Name of the Model}
                                 {--without-style : Disable the default style} 
+                                {--language= : Specifies the language of files generated | br, en | Default = en}
                                 {migration : Full Name of the Migration to be used as base}';
 
     /**
@@ -28,6 +29,7 @@ class CrudGenerator extends Command
     private $viewFolder = '';
     private $controllerName = '';
     private $fieldList = [];
+    private $language = '';
 
     /**
      * Create a new command instance.
@@ -49,6 +51,8 @@ class CrudGenerator extends Command
         $migration = $this->argument('migration');
         if ($this->option('model-name')) {
             $this->modelName = $this->option('model-name');
+            $this->language = $this->defineLanguage();
+
             $this->scanMigration($migration);
             $this->runMigration();
             $this->createModel();
@@ -58,6 +62,15 @@ class CrudGenerator extends Command
         } else {
             $this->error('Not enough arguments (missing: "--model-name").');
         }
+    }
+
+    public function defineLanguage()
+    {
+        if (($this->option('language') === 'br') || ($this->option('language') === 'en')) {
+            return $this->option('language');
+        }
+
+        return config('crudconfig.language');
     }
 
     public function scanMigration($migration)
@@ -220,9 +233,16 @@ class CrudGenerator extends Command
         $storeMethod  .= "\n\t\t\$data = request()->all();";
         $storeMethod  .= "\n\t\t\$insert = $this->modelName::create(\$data);";
         $storeMethod  .= "\n\t\tif (\$insert) {";
-        $storeMethod  .= "\n\t\t\treturn redirect()->route('index$this->modelName')->with('message', '$this->modelName inserted successfully');";
+        if ($this->language === 'en') {
+            $successMessage = "$this->modelName inserted successfully";
+            $errorMessage = "Error inserting $this->modelName";
+        } else if ($this->language === 'br') {
+            $successMessage = "Sucesso ao inserir $this->modelName";
+            $errorMessage = "Erro ao inserir $this->modelName";
+        }
+        $storeMethod  .= "\n\t\t\treturn redirect()->route('index$this->modelName')->with('message', '$successMessage');";
         $storeMethod  .= "\n\t\t} else {";
-        $storeMethod  .= "\n\t\t\treturn redirect()->back()->with('error', 'Insertion error');";
+        $storeMethod  .= "\n\t\t\treturn redirect()->back()->with('error', '$errorMessage');";
         $storeMethod  .= "\n\t\t}";
         $storeMethod  .= "\n\t}";
 
@@ -243,9 +263,16 @@ class CrudGenerator extends Command
         $deleteMethod .= "\n\t\t\$item = $this->modelName::find(\$id);";
         $deleteMethod  .= "\n\t\t\$delete = \$item->delete();";
         $deleteMethod  .= "\n\t\tif (\$delete) {";
-        $deleteMethod  .= "\n\t\t\treturn redirect()->route('index$this->modelName')->with('message', '$this->modelName deleted successfully');";
+        if ($this->language === 'en') {
+            $successMessage = "$this->modelName deleted successfully";
+            $errorMessage = "Error deleting $this->modelName";
+        } else if ($this->language === 'br') {
+            $successMessage = "Sucesso ao deletar $this->modelName";
+            $errorMessage = "Erro ao deletar $this->modelName";
+        }
+        $deleteMethod  .= "\n\t\t\treturn redirect()->route('index$this->modelName')->with('message', '$successMessage');";
         $deleteMethod  .= "\n\t\t} else {";
-        $deleteMethod  .= "\n\t\t\treturn redirect()->back()->with('error', 'Deletion error');";
+        $deleteMethod  .= "\n\t\t\treturn redirect()->back()->with('error', '$errorMessage');";
         $deleteMethod  .= "\n\t\t}";
         $deleteMethod  .= "\n\t}";
 
@@ -276,13 +303,24 @@ class CrudGenerator extends Command
 
     public function createViewIndex($fullPath)
     {
+        if ($this->language === 'en') {
+            $txtNew = "New";
+            $txtEdit = "Edit";
+            $txtDelete = "Delete";
+            $txtDescription = "description";
+        } else if ($this->language === 'br') {
+            $txtNew = "Novo";
+            $txtEdit = "Editar";
+            $txtDelete = "Deletar";
+            $txtDescription = "descricao";
+        }
         $content  = "";
         if (!$this->option('without-style')) {
             $content  .= "<link href=\"{{asset('css/crudstyle.css')}}\" rel='stylesheet'>";
         }
         $content .= "\n\n<title>$this->modelName</title>\n";
         $content .= "\n<div class='container'>";
-        $content .= "\n\t<a href=\"{{ route('create$this->modelName') }}\" class='btn btn-success'> New</a>";
+        $content .= "\n\t<a href=\"{{ route('create$this->modelName') }}\" class='btn btn-success'> $txtNew</a>";
         $content .= "\n\n\t@if (session('message'))";
         $content .= "\n\t\t<div class='alert alert-success'>";
         $content .= "\n\t\t\t{{ session('message') }}";
@@ -321,14 +359,14 @@ class CrudGenerator extends Command
                 $navigation = rtrim($modelItem, "_id");
                 $navigation = str_replace('_', '', ucwords($navigation, '_'));
 
-                $content .= "\n\t\t\t\t<td>{{\$item->".$navigation."->description}}</td>";
+                $content .= "\n\t\t\t\t<td>{{\$item->".$navigation."->$txtDescription}}</td>";
             } else {
                 $content .= "\n\t\t\t\t<td>{{\$item->$modelItem}}</td>";
             }
         }
         $content .= "\n\t\t\t\t<td>";
-        $content .= "\n\t\t\t\t\t<a style='float: left;' href=\"{{route('edit$this->modelName', \$item->id)}}\" class='btn btn-warning' title='Edit'>E</a>";
-        $content .= "\n\t\t\t\t\t<form title='Delete' method='post' action=\"{{route('delete$this->modelName', \$item->id)}}\">";
+        $content .= "\n\t\t\t\t\t<a style='float: left;' href=\"{{route('edit$this->modelName', \$item->id)}}\" class='btn btn-warning' title='$txtEdit'>E</a>";
+        $content .= "\n\t\t\t\t\t<form title='$txtDelete' method='post' action=\"{{route('delete$this->modelName', \$item->id)}}\">";
         $content .= "\n\t\t\t\t\t\t{!! method_field('DELETE') !!} {!! csrf_field() !!}";
         $content .= "\n\t\t\t\t\t\t<button class='btn btn-danger'> X </button>";
         $content .= "\n\t\t\t\t\t</form>";
@@ -344,16 +382,25 @@ class CrudGenerator extends Command
 
     public function createViewCreate($fullPath)
     {
+        if ($this->language === 'en') {
+            $txtCreate = "Create";
+            $txtSelect = "Select the";
+            $txtSave = "Save";
+        } else if ($this->language === 'br') {
+            $txtCreate = "Criar";
+            $txtSelect = "Selecionar";
+            $txtSave = "Salvar";
+        }
         $content = "";
         if (!$this->option('without-style')) {
             $content  .= "<link href=\"{{asset('css/crudstyle.css')}}\" rel='stylesheet'>";
         }
-        $content .= "\n\n<title>Create $this->modelName</title>\n";
+        $content .= "\n\n<title>$txtCreate $this->modelName</title>\n";
         $content .= "\n<div>";
         $content .= "\n\t<div>";
         $content .= "\n\t\t<ul class='breadcrumb'>";
         $content .= "\n\t\t\t<li><a href=\"{{ route('index$this->modelName') }}\">$this->modelName</a></li>";
-        $content .= "\n\t\t\t<li class='active'>Create $this->modelName</li>";
+        $content .= "\n\t\t\t<li class='active'>$txtCreate $this->modelName</li>";
         $content .= "\n\t\t</ul>";
         $content .= "\n\t</div>";
         $content .= "\n</div>";
@@ -386,7 +433,7 @@ class CrudGenerator extends Command
             }
         }
 
-        $content .= "\n\n\t\t<button class='btn btn-success'>Save</button>";
+        $content .= "\n\n\t\t<button class='btn btn-success'>$txtSave</button>";
         $content .= "\n\t</form>";
         $content .= "\n</div>";
 
@@ -426,14 +473,22 @@ class CrudGenerator extends Command
             case 'unsignedInteger':
                 $PascalCaseModel = str_replace("_id", "", $modelItem);
                 $ret  = "\n\t\t\t<select name='$modelItem'>";
-                $ret .= "\n\t\t\t\t<option value='0'>Select the ". str_replace('_', ' ', ucwords($PascalCaseModel, '_')) ."</option>";
+
+                if ($this->language === 'en') {
+                    $txtSelect = "Select the";
+                    $txtDescription = "description";
+                } else if ($this->language === 'br') {
+                    $txtSelect = "Selecionar";
+                    $txtDescription = "descricao";
+                }
+                $ret .= "\n\t\t\t\t<option value='0'>$txtSelect ". str_replace('_', ' ', ucwords($PascalCaseModel, '_')) ."</option>";
 
                 $PascalCaseModel = $PascalCaseModel . "s";
                 $fk_array = str_replace('_', '', ucwords($PascalCaseModel, '_'));
                 $fk_array = lcfirst($fk_array);
                 $ret .= "\n\t\t\t\t@foreach(\$$fk_array as \$fk)";
                 $ret .= "\n\t\t\t\t\t<option value=\"{{\$fk->id}}\" @if(isset(\$item) && \$fk->id == \$item->$modelItem) selected @endif>";
-                $ret .= "\n\t\t\t\t\t\t{{\$fk->description}}";
+                $ret .= "\n\t\t\t\t\t\t{{\$fk->$txtDescription}}";
                 $ret .= "\n\t\t\t\t\t</option>";
                 $ret .= "\n\t\t\t\t@endforeach";
                 $ret .= "\n\t\t\t</select>";
