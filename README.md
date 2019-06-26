@@ -21,7 +21,7 @@ Matheuscarvalho\Crudgenerator\Src\CrudGeneratorServiceProvider::class,
 ],
 ```
 
-## Publish the CSS folder
+## Publish the CSS and Config folder
 ```bash
 php artisan config:cache
 php artisan vendor:publish
@@ -93,6 +93,22 @@ Option | params | Description
 ------------ | -------- | -------------
 --model-name | string | The name used by crud-generator to create the files
 --without-style | none | A boolean option which disable the default style. By default, the generated views comes with a simple css (that uses bootstrap classes) to style basically the pages.
+--language | [ br, en ] | Specifies the language of files generated. Default = en.
+
+## Configs
+
+The package comes with a file which allows you to override some default configurations.
+After you had published the css and the config folders, you can navigate to config/crudconfig.php and edit some configs, they are:
+
+Config      | Default   | Description
+------------|-----------|------------
+language    | en        | Specifies the language of all texts inside the files generated. Accepts only 'br' for 'Português Brasileiro' or 'en' for 'English'
+
+- After you edit any config inside crudconfig.php, please be sure of run the 
+```bash 
+php artisan config:cache
+``` 
+command to apply your changes.
 
 ## Output
 
@@ -362,5 +378,4 @@ Route::delete('/product/delete/{id}', 'ProductController@destroy')->name('delete
 
 Option | params | Description
 ------------ | -------- | -------------
---language | br, en | Specifies the language of files generated. Default = en.
 --pagination | none | A boolean option which indicates the index view must have pagination.
