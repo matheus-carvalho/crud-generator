@@ -291,7 +291,7 @@ class CrudGenerator extends Command
     public function createRoutes()
     {
         $routePath = base_path('routes');
-        $insert  = "\nRoute::get('/$this->viewFolder', '$this->controllerName@index')->name('index$this->modelName');";
+        $insert  = "\n\nRoute::get('/$this->viewFolder', '$this->controllerName@index')->name('index$this->modelName');";
         $insert .= "\nRoute::get('/$this->viewFolder/create', '$this->controllerName@create')->name('create$this->modelName');";
         $insert .= "\nRoute::get('/$this->viewFolder/edit/{id}', '$this->controllerName@edit')->name('edit$this->modelName');";
         $insert .= "\nRoute::post('/$this->viewFolder/store', '$this->controllerName@store')->name('store$this->modelName');";
