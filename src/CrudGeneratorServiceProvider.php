@@ -1,9 +1,9 @@
 <?php
 
-namespace Matheuscarvalho\Crudgenerator\Src;
+namespace Matheuscarvalho\Crudgenerator;
 
 use Illuminate\Support\ServiceProvider;
-use Matheuscarvalho\Crudgenerator\Src\Commands\CrudGenerator;
+use Matheuscarvalho\Crudgenerator\Commands\CrudGenerator;
 
 class CrudGeneratorServiceProvider extends ServiceProvider {
     public function boot()
@@ -13,7 +13,7 @@ class CrudGeneratorServiceProvider extends ServiceProvider {
             __DIR__.'/config' => config_path(),
         ]);
     }
-    
+
     public function register()
     {
         $this->app->singleton('command.generate:crud', function () {
