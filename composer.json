@@ -1,6 +1,8 @@
 {
-    "name": "matheuscarvalho/crudgenerator",
+    "name": "matheus-carvalho/crud-generator",
     "description": "Generate a CRUD with Model, Controller, Routes and Views based on given Migration.",
+    "type": "library",
+    "license": "MIT",
     "authors": [
         {
             "name": "Matheus Carvalho",
@@ -8,6 +10,13 @@
         }
     ],
     "require": {},
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Matheuscarvalho\\Crudgenerator\\CrudGeneratorServiceProvider"
+            ]
+        }
+    },
     "autoload": {
         "psr-4": {
             "Matheuscarvalho\\Crudgenerator\\": "src/"

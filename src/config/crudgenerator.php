@@ -8,7 +8,7 @@ return [
     |--------------------------------------------------------------------------
     |
     | Specifies the language of all texts inside the files generated.
-    | Accepts only 'br' for 'Português Brasileiro' or 'en' for "English"
+    | Accepts only 'br' for 'Português brasileiro' or 'en' for "English"
     |
     */
 

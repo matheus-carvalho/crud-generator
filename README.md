@@ -5,7 +5,7 @@ Crud Generator provides Model, Controller, Routes and Views based on given Migra
 ## Installing via Composer
 
 ```bash
-composer require matheuscarvalho/crudgenerator
+composer require matheus-carvalho/crud-generator
 ```
 
 ## Add the provider to config/app.php providers array
@@ -240,7 +240,7 @@ Route::delete('/product/delete/{id}', 'ProductController@destroy')->name('delete
 <summary> resources\views\product\create.blade.php </summary>
 
 ```php
-<link href="{{asset('css/crudstyle.css')}}" rel='stylesheet'>
+<link href="{{asset('css/crudgenerator.css')}}" rel='stylesheet'>
 
 <title>Create Product</title>
 
@@ -320,7 +320,7 @@ Route::delete('/product/delete/{id}', 'ProductController@destroy')->name('delete
 <summary> resources\views\product\index.blade.php </summary>
 
 ```php
-<link href="{{asset('css/crudstyle.css')}}" rel='stylesheet'>
+<link href="{{asset('css/crudgenerator.css')}}" rel='stylesheet'>
 
 <title>Product</title>
 
