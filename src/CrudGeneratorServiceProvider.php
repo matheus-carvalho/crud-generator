@@ -1,11 +1,22 @@
 <?php
 
+/** @noinspection PhpUndefinedNamespaceInspection */
+/** @noinspection PhpUndefinedClassInspection */
+
 namespace Matheuscarvalho\Crudgenerator;
 
 use Illuminate\Support\ServiceProvider;
 use Matheuscarvalho\Crudgenerator\Commands\CrudGenerator;
 
+/**
+ * @method commands(string[] $array)
+ * @method publishes(array $array)
+ * @property $app
+ */
 class CrudGeneratorServiceProvider extends ServiceProvider {
+    /** @noinspection PhpUndefinedFunctionInspection
+     * @noinspection PhpUnused
+     */
     public function boot()
     {
         $this->publishes([
@@ -14,6 +25,7 @@ class CrudGeneratorServiceProvider extends ServiceProvider {
         ]);
     }
 
+    /** @noinspection PhpUnused */
     public function register()
     {
         $this->app->singleton('command.generate:crud', function () {
@@ -27,8 +39,9 @@ class CrudGeneratorServiceProvider extends ServiceProvider {
      * Get the services provided by the provider.
      *
      * @return array
+     * @noinspection PhpUnused
      */
-    public function provides()
+    public function provides(): array
     {
         return ['command.generate:crud'];
     }
