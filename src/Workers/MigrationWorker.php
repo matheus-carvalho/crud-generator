@@ -16,6 +16,11 @@ class MigrationWorker
         $this->utilsHelper = new Utils();
     }
 
+    /**
+     * Scans migration to returns the field list and the table name
+     * @param $migration
+     * @return array
+     */
     public function scan($migration): array
     {
         $file = 'database/migrations/'.$migration;
