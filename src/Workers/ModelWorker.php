@@ -11,56 +11,113 @@ class ModelWorker
      */
     private $utilsHelper;
 
+    /**
+     * @var array
+     */
+    private $fieldList;
+
     public function __construct()
     {
         $this->utilsHelper = new Utils();
     }
 
+    /**
+     * Builds the Model file
+     * @param string $modelName
+     * @param string $tableName
+     * @param array $fieldList
+     * @return void
+     */
     public function build(string $modelName, string $tableName, array $fieldList)
     {
+        $this->fieldList = $fieldList;
+        /** @noinspection PhpUndefinedFunctionInspection */
         $filePath = app_path('Models/') . $modelName . ".php";
 
-        // Model Data
-        $headers = "<?php";
-        $headers .= "\n\nnamespace App\Models;";
-        $headers .= "\n\nuse Illuminate\Database\Eloquent\Model;";
-        $headers .= "\n\nclass $modelName extends Model\n{\n";
+        $content = $this->appendHeaders($modelName);
+        $content .= $this->appendTableName($tableName);
+        $content .= $this->appendFillable();
+        $content .= $this->appendNavigationProperties();
+        $content .= "\n}";
 
-        $tableLine = "\tprotected \$table = ";
-        $fillableStart = "\n\n\tprotected \$fillable = [\n";
-        $fillableEnd = "\t];";
+        file_put_contents($filePath, $content);
+    }
 
-        // Your new stuff
-        $insert = $headers;
-        $insert .= $tableLine . "'$tableName';";
-        $insert .= $fillableStart;
+    /**
+     * Add the headers to the content
+     * @param string $modelName
+     * @return string
+     */
+    private function appendHeaders(string $modelName): string
+    {
+        $content = "<?php";
+        $content .= "\n\nnamespace App\Models;";
+        $content .= "\n\nuse Illuminate\Database\Eloquent\Model;";
+        $content .= "\n";
+        $content .= "\n/**";
+        $content .= "\n * @method static find(\$id)";
+        $content .= "\n * @method static create(array \$data)";
+        $content .= "\n */";
+        $content .= "\nclass $modelName extends Model\n{\n";
 
-        // Add the fields
-        foreach($fieldList as $field) {
+        return $content;
+    }
+
+    /**
+     * Add the table name to the content
+     * @param string $tableName
+     * @return string
+     */
+    private function appendTableName(string $tableName): string
+    {
+        return "\tprotected \$table = " . "'$tableName';";
+    }
+
+    /**
+     * Add the fillable to the content
+     * @return string
+     */
+    private function appendFillable(): string
+    {
+        $content = "\n\n\tprotected \$fillable = [\n";
+
+        foreach($this->fieldList as $field) {
             $fillableItem = $this->utilsHelper->getStringBetween($field, "'", "'");
             if ($fillableItem != "id" && $fillableItem != "")
-                $insert .= "\t\t'".$fillableItem."',\n";
-        }
-        $insert .= $fillableEnd;
-
-        // check if exists foreign keys to make the navigation properties
-        $foreignKeys = $this->utilsHelper->checkForeignKeys($fieldList);
-        if ($foreignKeys) {
-            foreach ($foreignKeys as $fk) {
-                $array = preg_split('/(?=[A-Z])/', $fk);
-                $foreign_id = implode('_', $array);
-                $foreign_id = strtolower($foreign_id);
-                $foreign_id = ltrim($foreign_id, $foreign_id[0]);
-                $foreign_id = $foreign_id . "_id";
-
-                $insert .= "\n\n\tpublic function $fk(){";
-                $insert .= "\n\t\treturn \$this->belongsTo('App\\Models\\$fk', '$foreign_id', 'id');";
-                $insert .= "\n\t}";
-            }
+                $content .= "\t\t'" . $fillableItem . "',\n";
         }
 
-        $insert .= "\n}";
+        $content = rtrim($content, ",\n");
+        $content .= "\n\t];";
 
-        file_put_contents($filePath, $insert);
+        return $content;
+    }
+
+    /**
+     * Add the navigation properties to the content
+     * @return string
+     */
+    private function appendNavigationProperties(): string
+    {
+        $content = "";
+        $foreignKeys = $this->utilsHelper->checkForeignKeys($this->fieldList);
+
+        if (!$foreignKeys) {
+            return $content;
+        }
+
+        foreach ($foreignKeys as $fk) {
+            $array = preg_split('/(?=[A-Z])/', $fk);
+            $foreignId = implode('_', $array);
+            $foreignId = strtolower($foreignId);
+            $foreignId = ltrim($foreignId, $foreignId[0]);
+            $foreignId = $foreignId . "_id";
+
+            $content .= "\n\n\tpublic function $fk(){";
+            $content .= "\n\t\treturn \$this->belongsTo('App\\Models\\$fk', '$foreignId', 'id');";
+            $content .= "\n\t}";
+        }
+
+        return $content;
     }
 }

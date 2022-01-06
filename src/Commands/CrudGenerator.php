@@ -96,13 +96,10 @@ class CrudGenerator extends Command
 
         [$fieldList, $tableName] = $this->migrationWorker->scan($migration);
         $this->call('migrate');
-
         $this->call('make:model', [
             'name' => $modelName
         ]);
-
         $this->modelWorker->build($modelName, $tableName, $fieldList);
-
         $viewFolder = $this->viewWorker->build($modelName, $language, $fieldList, $isWithoutStyle);
 
         $controllerName = ucfirst($modelName) . "Controller";
@@ -111,12 +108,11 @@ class CrudGenerator extends Command
         ]);
 
         $this->controllerWorker->build($controllerName, $modelName, $fieldList, $viewFolder, $language);
-
         $this->routeWorker->build($controllerName, $viewFolder, $modelName);
     }
 
     /**
-     * Defines the language of CRUD
+     * Defines the language inside CRUD files
      * @return string
      */
     public function defineLanguage(): string

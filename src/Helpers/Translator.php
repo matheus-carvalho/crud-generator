@@ -27,7 +27,9 @@ class Translator
                 'new' => 'New',
                 'edit' => 'Edit',
                 'delete' => 'Delete',
-                'description' => 'description'
+                'description' => 'description',
+                'actions' => 'Actions',
+                'list' => '$1 List'
             ],
             'br' => [
                 'success_messages' => [
@@ -44,7 +46,9 @@ class Translator
                 'new' => 'Novo',
                 'edit' => 'Editar',
                 'delete' => 'Deletar',
-                'description' => 'descricao'
+                'description' => 'descricao',
+                'actions' => 'Ações',
+                'list' => 'Lista de $1'
             ]
         ][$lang];
     }

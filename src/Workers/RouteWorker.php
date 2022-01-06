@@ -65,6 +65,11 @@ class RouteWorker
         file_put_contents($routesFile, join($LINE_SEPARATOR, $allFileLines));
     }
 
+    /**
+     * Write the routes to the file
+     * @param string $routesFile
+     * @return void
+     */
     private function appendRoutes(string $routesFile)
     {
         $appendContent = "\n";
