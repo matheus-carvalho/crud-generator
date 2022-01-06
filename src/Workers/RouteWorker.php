@@ -87,19 +87,20 @@ class RouteWorker
      * Builds each route to append to file
      * @param string $verb
      * @param string $method
-     * @param bool $hasId
+     * @param bool $appendsId
      * @return string
      */
-    private function buildRoute(string $verb, string $method, bool $hasId = false): string
+    private function buildRoute(string $verb, string $method, bool $appendsId = false): string
     {
-        $routeName = $method . $this->modelName;
-        $routePath = "/$this->resourceName/$method";
+        $routeName = $verb === "delete" ? $verb . $this->modelName : $method . $this->modelName;
+        $routePath = "/$this->resourceName";
 
-        if ($method === "index") {
-            $routePath = "/$this->resourceName";
+        if ($method === "create" || $method === "edit") {
+            $routePath .= "/$method";
         }
-        if ($hasId) {
-            $routePath = "/$this->resourceName/$method/{id}";
+
+        if ($appendsId) {
+            $routePath .= "/{id}";
         }
 
         return "\nRoute::$verb('$routePath', [$this->controllerName::class, '$method'])->name('$routeName');";

@@ -75,6 +75,141 @@ class ViewWorker
     }
 
     /**
+     * Builds the Index view
+     * @param string $fullPath
+     * @return void
+     */
+    public function buildIndex(string $fullPath)
+    {
+        $content = $this->appendStyle();
+        $content .= $this->openIndexContainer();
+        $content .= $this->appendIndexHeader();
+        $content .= $this->appendIndexTable();
+        $content .= $this->closeIndexContainer();
+
+        file_put_contents($fullPath."/index.blade.php", $content);
+    }
+
+    /**
+     * Appends the opening of index container
+     * @return string
+     */
+    private function openIndexContainer(): string
+    {
+        $content = "<title>$this->modelName</title>\n";
+        $content .= "\n<div class=\"container\">";
+        return $content;
+    }
+
+    /**
+     * Appends the closing of index container
+     * @return string
+     */
+    private function closeIndexContainer(): string
+    {
+        return "\n</div>";
+    }
+
+    /**
+     * Appends a header to the index content
+     * @return string
+     */
+    private function appendIndexHeader(): string
+    {
+        $txtNew = $this->translated['new'];
+        $itemList = $this->translator->parseTranslated(
+            $this->translated['list'],
+            [ $this->modelName ]
+        );
+
+        $content = "\n\t<div class=\"row justify-content-around align-items-center mt-20\">";
+        $content .= "\n\t\t<div>";
+        $content .= "\n\t\t\t<p class=\"list-header\">$itemList</p>";
+        $content .= "\n\t\t</div>";
+        $content .= "\n\t\t<div>";
+        $content .= "\n\t\t\t<a href=\"{{route('create$this->modelName')}}\" class=\"btn btn-success\">$txtNew &#10004;</a>";
+        $content .= "\n\t\t</div>";
+        $content .= "\n\t</div>";
+
+        $content .= "\n\t<div class=\"row\">";
+        $content .= "\n\n\t@if (session('message'))";
+        $content .= "\n\t\t<div class='alert alert-success'>";
+        $content .= "\n\t\t\t{{ session('message') }}";
+        $content .= "\n\t\t</div>";
+        $content .= "\n\t@endif";
+        $content .= "\n\t</div>";
+
+        return $content;
+    }
+
+    /**
+     * Appends a table to the index content
+     * @return string
+     */
+    private function appendIndexTable(): string
+    {
+        $txtEdit = $this->translated['edit'];
+        $txtDelete = $this->translated['delete'];
+        $txtDescription = $this->translated['description'];
+        $txtActions = $this->translated['actions'];
+
+        $content = "\n\n\t<div class=\"row\">";
+        $content .= "\n\t\t<table class=\"list-table table-stripped mt-20 w-100\">";
+        $content .= "\n\t\t\t<thead>";
+        $content .= "\n\t\t\t\t<tr>";
+
+        $modelItems = [];
+        foreach($this->fieldList as $field) {
+            $modelItem = $this->utilsHelper->getStringBetween($field, "'", "'");
+            if ($modelItem != "id" && $modelItem != "") {
+                if (strpos($modelItem, '_id') !== false) {
+                    $title = rtrim($modelItem, "_id");
+                    $title = str_replace("_", " ", $title);
+                } else {
+                    $title = str_replace("_", " ", $modelItem);
+                }
+                $content .= "\n\t\t\t\t\t<th>" . ucfirst($title) . "</th>";
+                $modelItems[] = $modelItem;
+            }
+        }
+        $content .= "\n\t\t\t\t\t<th>$txtActions</th>";
+
+        $content .= "\n\t\t\t\t</tr>";
+        $content .= "\n\t\t\t</thead>";
+        $content .= "\n\t\t\t<tbody>";
+        $content .= "\n\t\t\t@foreach (\$items as \$item)";
+        $content .= "\n\t\t\t\t<tr>";
+        foreach ($modelItems as $modelItem) {
+            if (strpos($modelItem, '_id') !== false) {
+                $navigation = rtrim($modelItem, "_id");
+                $navigation = str_replace('_', '', ucwords($navigation, '_'));
+
+                $content .= "\n\t\t\t\t\t<td>{{\$item->".$navigation."->$txtDescription}}</td>";
+            } else {
+                $content .= "\n\t\t\t\t\t<td>{{\$item->$modelItem}}</td>";
+            }
+        }
+        $content .= "\n\t\t\t\t\t<td class=\"row justify-content-start align-items-center\">";
+        $content .= "\n\t\t\t\t\t\t<div class=\"action-button\">";
+        $content .= "\n\t\t\t\t\t\t\t<a href=\"{{route('edit$this->modelName', \$item->id)}}\" class=\"btn btn-warning\" title=\"$txtEdit\"> &#9998; </a>";
+        $content .= "\n\t\t\t\t\t\t</div>";
+        $content .= "\n\t\t\t\t\t\t<div class=\"action-button\">";
+        $content .= "\n\t\t\t\t\t\t\t<form title=\"$txtDelete\" method=\"post\" action=\"{{route('delete$this->modelName', \$item->id)}}\">";
+        $content .= "\n\t\t\t\t\t\t\t\t{!! method_field('DELETE') !!} {!! csrf_field() !!}";
+        $content .= "\n\t\t\t\t\t\t\t\t<button class=\"btn btn-danger\"> &times; </button>";
+        $content .= "\n\t\t\t\t\t\t\t</form>";
+        $content .= "\n\t\t\t\t\t\t</div>";
+        $content .= "\n\t\t\t\t\t</td>";
+        $content .= "\n\t\t\t\t</tr>";
+        $content .= "\n\t\t\t@endforeach";
+        $content .= "\n\t\t\t</tbody>";
+        $content .= "\n\t\t</table>";
+        $content .= "\n\t</div>";
+
+        return $content;
+    }
+
+    /**
      * Builds the Create view
      * @param string $fullPath
      * @return void
@@ -127,9 +262,17 @@ class ViewWorker
         $content .= "\n\t\t\t<li class='active'>$txtCreate $this->modelName</li>";
         $content .= "\n\t\t</ul>";
         $content .= "\n\t</div>";
-        $content .= "\n</div>";
-        $content .= "\n\n<div>";
-        $content .= "\n\t<form class='container' method='post' ";
+
+        return $content;
+    }
+
+    /**
+     * Appends a form to the creation content
+     * @return string
+     */
+    private function appendCreateForm(): string
+    {
+        $content = "\n\t<form method=\"post\" ";
         $content .= "\n\t\t@if(isset(\$item))";
         $content .= "\n\t\t\taction=\"{{ route('update$this->modelName', \$item->id) }}\">";
         $content .= "\n\t\t\t{!! method_field('PUT') !!}";
@@ -147,90 +290,17 @@ class ViewWorker
                 } else {
                     $title = str_replace("_", " ", $modelItem);
                 }
-                $content .= "\n\t\t<div>".ucfirst($title)."</div>";
-                $content .= "\n\t\t<div>";
-                $content .= $this->getInputType($field, $modelItem);
-                $content .= "\n\t\t</div>";
+
+                $content .= $this->getInputType($field, $modelItem, ucfirst($title));
             }
         }
 
         $txtSave = $this->translated['save'];
-        $content .= "\n\n\t\t<button class='btn btn-success'>$txtSave</button>";
+        $content .= "\n\n\t\t<button class=\"btn btn-success\">$txtSave</button>";
         $content .= "\n\t</form>";
-        $content .= "\n</div>";
 
-        file_put_contents($fullPath."/create.blade.php", $content);
+        return $content;
     }
-
-    public function buildIndex(string $fullPath, string $modelName, array $fieldList, bool $isWithoutStyle)
-    {
-        $txtNew = $this->translated['new'];
-        $txtEdit = $this->translated['edit'];
-        $txtDelete = $this->translated['delete'];
-        $txtDescription = $this->translated['description'];
-
-        $content  = "";
-        if (!$isWithoutStyle) {
-            /** @noinspection HtmlUnknownTarget */
-            $content  .= "<link href=\"{{asset('css/crudgenerator.css')}}\" rel='stylesheet'>";
-        }
-        $content .= "\n\n<title>$modelName</title>\n";
-        $content .= "\n<div class='container'>";
-        $content .= "\n\t<a href=\"{{ route('create$modelName') }}\" class='btn btn-success'> $txtNew</a>";
-        $content .= "\n\n\t@if (session('message'))";
-        $content .= "\n\t\t<div class='alert alert-success'>";
-        $content .= "\n\t\t\t{{ session('message') }}";
-        $content .= "\n\t\t</div>";
-        $content .= "\n\t@endif";
-        $content .= "\n\n\t<table class='table'>";
-        $content .= "\n\t\t<thead>";
-        $content .= "\n\t\t\t<tr>";
-
-        $modelItems = [];
-        // Add one table header for each item on Model List
-        foreach($fieldList as $field) {
-            $modelItem = $this->utilsHelper->getStringBetween($field, "'", "'");
-            if ($modelItem != "id" && $modelItem != "") {
-                if (strpos($modelItem, '_id') !== false) {
-                    $title = rtrim($modelItem, "_id");
-                    $title = str_replace("_", " ", $title);
-                } else {
-                    $title = str_replace("_", " ", $modelItem);
-                }
-                $content .= "\n\t\t\t\t<th>" . ucfirst($title) . "</th>";
-                $modelItems[] = $modelItem;
-            }
-        }
-        $content .= "\n\t\t\t\t<th>Ações</th>";
-
-        $content .= "\n\t\t\t</tr>";
-        $content .= "\n\t\t</thead>";
-        $content .= "\n\t\t<tbody>";
-        $content .= "\n\t\t\t@foreach (\$items as \$item)";
-        $content .= "\n\t\t\t<tr>";
-        // Add one TD for each item on Model List
-        foreach ($modelItems as $modelItem) {
-            if (strpos($modelItem, '_id') !== false) {
-                $navigation = rtrim($modelItem, "_id");
-                $navigation = str_replace('_', '', ucwords($navigation, '_'));
-
-                $content .= "\n\t\t\t\t<td>{{\$item->".$navigation."->$txtDescription}}</td>";
-            } else {
-                $content .= "\n\t\t\t\t<td>{{\$item->$modelItem}}</td>";
-            }
-        }
-        $content .= "\n\t\t\t\t<td>";
-        $content .= "\n\t\t\t\t\t<a style='float: left;' href=\"{{route('edit$modelName', \$item->id)}}\" class='btn btn-warning' title='$txtEdit'>E</a>";
-        $content .= "\n\t\t\t\t\t<form title='$txtDelete' method='post' action=\"{{route('delete$modelName', \$item->id)}}\">";
-        $content .= "\n\t\t\t\t\t\t{!! method_field('DELETE') !!} {!! csrf_field() !!}";
-        $content .= "\n\t\t\t\t\t\t<button class='btn btn-danger'> X </button>";
-        $content .= "\n\t\t\t\t\t</form>";
-        $content .= "\n\t\t\t\t</td>";
-        $content .= "\n\t\t\t</tr>";
-        $content .= "\n\t\t\t@endforeach";
-        $content .= "\n\t\t</tbody>";
-        $content .= "\n\t</table>";
-        $content .= "\n</div>";
 
     /**
      * Appends the style to the content
