@@ -9,6 +9,7 @@ use Illuminate\Console\Command;
 use Matheuscarvalho\Crudgenerator\Workers\ControllerWorker;
 use Matheuscarvalho\Crudgenerator\Workers\MigrationWorker;
 use Matheuscarvalho\Crudgenerator\Workers\ModelWorker;
+use Matheuscarvalho\Crudgenerator\Workers\RequestWorker;
 use Matheuscarvalho\Crudgenerator\Workers\RouteWorker;
 use Matheuscarvalho\Crudgenerator\Workers\ViewWorker;
 
@@ -64,6 +65,11 @@ class CrudGenerator extends Command
     private $routeWorker;
 
     /**
+     * @var RequestWorker
+     */
+    private $requestWorker;
+
+    /**
      * Create a new command instance.
      *
      * @return void
@@ -77,6 +83,7 @@ class CrudGenerator extends Command
         $this->viewWorker = new ViewWorker();
         $this->controllerWorker = new ControllerWorker();
         $this->routeWorker = new RouteWorker();
+        $this->requestWorker = new RequestWorker();
     }
 
     /**
@@ -106,6 +113,12 @@ class CrudGenerator extends Command
         ]);
         $this->modelWorker->build($modelName, $tableName, $fieldList);
         $viewFolder = $this->viewWorker->build($modelName, $language, $fieldList, $isWithoutStyle);
+
+        $requestName = $modelName . "Request";
+        $this->call('make:request', [
+            'name' => $requestName
+        ]);
+        $this->requestWorker->build($requestName, $modelName, $fieldList, $language);
 
         $controllerName = ucfirst($modelName) . "Controller";
         $this->call('make:controller', [

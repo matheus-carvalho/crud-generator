@@ -62,33 +62,38 @@ class ControllerWorker
         /** @noinspection PhpUndefinedFunctionInspection */
         $filePath = app_path('Http/Controllers/') . $controllerName . ".php";
 
+        $requestName = $this->modelName . "Request";
+
         [
             $content,
             $foreignKeys,
             $fkContents,
             $fkVarNames
-        ] = $this->appendHeaders($fieldList);
+        ] = $this->appendHeaders($fieldList, $requestName);
         $content .= $this->appendIndex();
         $content .= $this->appendCreate($foreignKeys, $fkContents, $fkVarNames);
         $content .= $this->appendEdit($foreignKeys, $fkContents, $fkVarNames);
-        $content .= $this->appendStore();
-        $content .= $this->appendUpdate();
+        $content .= $this->appendStore($requestName);
+        $content .= $this->appendUpdate($requestName);
         $content .= $this->appendDelete();
-        $content .= "\n}";
 
+        $content .= "\n}";
         file_put_contents($filePath, $content);
     }
 
     /**
      * Add the headers to the content and prepare the foreign keys
      * @param array $fieldList
+     * @param string $requestName
      * @return array
      */
-    private function appendHeaders(array $fieldList): array
+    private function appendHeaders(array $fieldList, string $requestName): array
     {
+
         $content = "<?php";
         $content .= "\n\nnamespace App\Http\Controllers;";
-        $content .= "\n\nuse Illuminate\Http\RedirectResponse;";
+        $content .= "\n\nuse App\Http\Requests\\$requestName;";
+        $content .= "\nuse Illuminate\Http\RedirectResponse;";
         $content .= "\nuse Illuminate\View\View;";
         $content .= "\nuse App\Models\\$this->modelName;";
 
@@ -183,11 +188,12 @@ class ControllerWorker
 
     /**
      * Add the method store to the content
+     * @param string $requestName
      * @return string
      */
-    private function appendStore(): string
+    private function appendStore(string $requestName): string
     {
-        $content   = "\n\n\tpublic function store(): RedirectResponse";
+        $content   = "\n\n\tpublic function store($requestName \$request): RedirectResponse";
         $content .= "\n\t{";
         $content  .= "\n\t\t\$data = \$request->validated();";
         $content  .= "\n\t\t\$insert = $this->modelName::create(\$data);";
@@ -212,11 +218,12 @@ class ControllerWorker
 
     /**
      * Add the method update to the content
+     * @param string $requestName
      * @return string
      */
-    private function appendUpdate(): string
+    private function appendUpdate(string $requestName): string
     {
-        $content  = "\n\n\tpublic function update(\$id): RedirectResponse";
+        $content  = "\n\n\tpublic function update($requestName \$request, int \$id): RedirectResponse";
         $content .= "\n\t{";
         $content  .= "\n\t\t\$data = \$request->validated();";
         $content  .= "\n\n\t\t\$item = $this->modelName::find(\$id);";
@@ -236,7 +243,7 @@ class ControllerWorker
      */
     private function appendDelete(): string
     {
-        $content  = "\n\n\tpublic function destroy(\$id): RedirectResponse";
+        $content  = "\n\n\tpublic function destroy(int \$id): RedirectResponse";
         $content .= "\n\t{";
         $content .= "\n\t\t\$item = $this->modelName::find(\$id);";
         $content  .= "\n\t\t\$delete = \$item->delete();";

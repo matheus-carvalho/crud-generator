@@ -6,9 +6,17 @@
     font-family: "Courier New", "Courier New", monospace;
 }
 
+.w-100 {
+    width: 100%;
+}
+
 .row {
     display: flex;
     flex-wrap: wrap;
+}
+
+.overflow-auto {
+    overflow: auto;
 }
 
 .justify-content-around {
@@ -230,10 +238,6 @@
     border-color: #78341a;
 }
 
-.w-100 {
-    width: 100%;
-}
-
 /* ALERTS */
 .alert-success {
     background-color: #dff0d8;
@@ -241,13 +245,18 @@
     color: #3c763d;
 }
 
+.alert-danger {
+    color: #a94442;
+    background-color: #f2dede;
+    border-color: #ebccd1;
+}
+
 .alert {
-    padding: 15px;
+    padding: 15px 0 15px 15px;
     margin-bottom: 20px;
     margin-top: 20px;
     border: 1px solid transparent;
     border-radius: 4px;
-    width: 100%;
 }
 
 /* MEDIAS */

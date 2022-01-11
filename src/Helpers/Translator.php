@@ -29,7 +29,11 @@ class Translator
                 'delete' => 'Delete',
                 'description' => 'name',
                 'actions' => 'Actions',
-                'list' => '$1 List'
+                'list' => '$1 List',
+                'request_messages' => [
+                    'required' => 'The :attribute field is required.',
+                    'min' => 'You must select the :attribute.'
+                ]
             ],
             'br' => [
                 'success_messages' => [
@@ -48,7 +52,11 @@ class Translator
                 'delete' => 'Deletar',
                 'description' => 'nome',
                 'actions' => 'Ações',
-                'list' => 'Lista de $1'
+                'list' => 'Lista de $1',
+                'request_messages' => [
+                    'required' => 'Você deve preencher o campo :attribute.',
+                    'min' => 'Você deve selecionar um item no campo :attribute.'
+                ]
             ]
         ][$lang];
     }

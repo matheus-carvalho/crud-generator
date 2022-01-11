@@ -134,7 +134,7 @@ class ViewWorker
 
         $content .= "\n\t<div class=\"row\">";
         $content .= "\n\n\t@if (session('message'))";
-        $content .= "\n\t\t<div class='alert alert-success'>";
+        $content .= "\n\t\t<div class='alert alert-success w-100'>";
         $content .= "\n\t\t\t{{ session('message') }}";
         $content .= "\n\t\t</div>";
         $content .= "\n\t@endif";
@@ -154,7 +154,7 @@ class ViewWorker
         $txtDescription = $this->translated['description'];
         $txtActions = $this->translated['actions'];
 
-        $content = "\n\n\t<div class=\"row\">";
+        $content = "\n\n\t<div class=\"row overflow-auto\">";
         $content .= "\n\t\t<table class=\"list-table table-stripped mt-20 w-100\">";
         $content .= "\n\t\t\t<thead>";
         $content .= "\n\t\t\t\t<tr>";
