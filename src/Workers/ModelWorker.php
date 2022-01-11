@@ -34,10 +34,18 @@ class ModelWorker
         /** @noinspection PhpUndefinedFunctionInspection */
         $filePath = app_path('Models/') . $modelName . ".php";
 
-        $content = $this->appendHeaders($modelName);
+        $foreignKeys = $this->utilsHelper->checkForeignKeys($this->fieldList);
+
+        $content = $this->appendHeaders($modelName, $foreignKeys);
         $content .= $this->appendTableName($tableName);
         $content .= $this->appendFillable();
-        $content .= $this->appendNavigationProperties();
+
+        $notNullableBooleans = $this->utilsHelper->getNotNullableBooleans($this->fieldList);
+        if (count($notNullableBooleans) > 0) {
+            $content .= $this->appendNotNullableBooleans($notNullableBooleans);
+        }
+
+        $content .= $this->appendNavigationProperties($foreignKeys);
         $content .= "\n}";
 
         file_put_contents($filePath, $content);
@@ -46,15 +54,20 @@ class ModelWorker
     /**
      * Add the headers to the content
      * @param string $modelName
+     * @param array $foreignKeys
      * @return string
      */
-    private function appendHeaders(string $modelName): string
+    private function appendHeaders(string $modelName, array $foreignKeys): string
     {
         $content = "<?php";
         $content .= "\n\nnamespace App\Models;";
         $content .= "\n\nuse Illuminate\Database\Eloquent\Model;";
-        $content .= "\n";
-        $content .= "\n/**";
+
+        if ($foreignKeys) {
+            $content .= "\nuse Illuminate\Database\Eloquent\Relations\BelongsTo;";
+        }
+
+        $content .= "\n\n/**";
         $content .= "\n * @method static find(\$id)";
         $content .= "\n * @method static create(array \$data)";
         $content .= "\n */";
@@ -94,14 +107,32 @@ class ModelWorker
     }
 
     /**
-     * Add the navigation properties to the content
+     * Appends the not nullable booleans to the content
+     * @param array $notNullableBooleans
      * @return string
      */
-    private function appendNavigationProperties(): string
+    private function appendNotNullableBooleans(array $notNullableBooleans): string
+    {
+        $content = "\n\n\tpublic static \$notNullableBooleans = [\n";
+
+        foreach ($notNullableBooleans as $notNullableBoolean) {
+            $content .= "\t\t'$notNullableBoolean',\n";
+        }
+
+        $content = rtrim($content, ",\n");
+        $content .= "\n\t];";
+
+        return $content;
+    }
+
+    /**
+     * Add the navigation properties to the content
+     * @param array $foreignKeys
+     * @return string
+     */
+    private function appendNavigationProperties(array $foreignKeys): string
     {
         $content = "";
-        $foreignKeys = $this->utilsHelper->checkForeignKeys($this->fieldList);
-
         if (!$foreignKeys) {
             return $content;
         }
@@ -113,7 +144,8 @@ class ModelWorker
             $foreignId = ltrim($foreignId, $foreignId[0]);
             $foreignId = $foreignId . "_id";
 
-            $content .= "\n\n\tpublic function $fk(){";
+            $content .= "\n\n\tpublic function $fk(): BelongsTo";
+            $content .= "\n\t{";
             $content .= "\n\t\treturn \$this->belongsTo('App\\Models\\$fk', '$foreignId', 'id');";
             $content .= "\n\t}";
         }

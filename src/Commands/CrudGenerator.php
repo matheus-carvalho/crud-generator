@@ -95,6 +95,11 @@ class CrudGenerator extends Command
         $language = $this->defineLanguage();
 
         [$fieldList, $tableName] = $this->migrationWorker->scan($migration);
+
+        if (!$tableName) {
+            $this->error('Invalid migration (missing: table name).');
+        }
+
         $this->call('migrate');
         $this->call('make:model', [
             'name' => $modelName

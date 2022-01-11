@@ -99,7 +99,7 @@ class ControllerWorker
             foreach ($foreignKeys as $fk) {
                 $content .= "\nuse App\Models\\$fk;";
 
-                $fkVarName = lcfirst($fk) . 's';
+                $fkVarName = lcfirst($fk) . 'List';
                 $fkVarNames .= "'$fkVarName'" . ", ";
                 $fkContents .= "\n\t\t\$$fkVarName = $fk::all();";
             }
@@ -189,7 +189,7 @@ class ControllerWorker
     {
         $content   = "\n\n\tpublic function store(): RedirectResponse";
         $content .= "\n\t{";
-        $content  .= "\n\t\t\$data = request()->all();";
+        $content  .= "\n\t\t\$data = \$request->validated();";
         $content  .= "\n\t\t\$insert = $this->modelName::create(\$data);";
         $content  .= "\n\t\tif (!\$insert) {";
 
@@ -218,8 +218,8 @@ class ControllerWorker
     {
         $content  = "\n\n\tpublic function update(\$id): RedirectResponse";
         $content .= "\n\t{";
-        $content  .= "\n\t\t\$data = request()->all();";
-        $content  .= "\n\t\t\$item = $this->modelName::find(\$id);";
+        $content  .= "\n\t\t\$data = \$request->validated();";
+        $content  .= "\n\n\t\t\$item = $this->modelName::find(\$id);";
         $content  .= "\n\t\t\$update = \$item->update(\$data);";
         $content  .= "\n\t\tif (!\$update) {";
         $content  .= "\n\t\t\treturn redirect()->back();";

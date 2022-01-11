@@ -27,7 +27,7 @@ class Translator
                 'new' => 'New',
                 'edit' => 'Edit',
                 'delete' => 'Delete',
-                'description' => 'description',
+                'description' => 'name',
                 'actions' => 'Actions',
                 'list' => '$1 List'
             ],
@@ -46,7 +46,7 @@ class Translator
                 'new' => 'Novo',
                 'edit' => 'Editar',
                 'delete' => 'Deletar',
-                'description' => 'descricao',
+                'description' => 'nome',
                 'actions' => 'Ações',
                 'list' => 'Lista de $1'
             ]

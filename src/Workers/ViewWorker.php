@@ -2,6 +2,7 @@
 
 namespace Matheuscarvalho\Crudgenerator\Workers;
 
+use Matheuscarvalho\Crudgenerator\Helpers\AvailableColumnTypes;
 use Matheuscarvalho\Crudgenerator\Helpers\Translator;
 use Matheuscarvalho\Crudgenerator\Helpers\Utils;
 
@@ -327,45 +328,69 @@ class ViewWorker
     {
         $field = $this->utilsHelper->getStringBetween($field, ">", "(");
 
-        switch ($field) {
-            case 'integer':
-                return "\n\t\t\t<input name='$modelItem' value=\"{{isset(\$item) ? \$item->$modelItem : old('$modelItem')}}\" type='number'>";
-            case 'double':
-                return "\n\t\t\t<input name='$modelItem' value=\"{{isset(\$item) ? \$item->$modelItem : old('$modelItem')}}\" type='number' step='0.01'>";
-            case 'date':
-                return "\n\t\t\t<input name='$modelItem' value=\"{{isset(\$item) ? \$item->$modelItem : old('$modelItem')}}\" type='date'>";
-            case 'dateTime':
-                return "\n\t\t\t<input name='$modelItem' value=\"{{isset(\$item) ? str_replace(' ', 'T', \$item->$modelItem) : old('$modelItem')}}\" type='datetime-local'>";
-            case 'time':
-                return "\n\t\t\t<input name='$modelItem' value=\"{{isset(\$item) ? \$item->$modelItem : old('$modelItem')}}\" type='time'>";
-            case 'string':
-            default:
-                $fieldHtml = "\n\t\t<div class=\"form-group\">";
-                $fieldHtml .= "\n\t\t\t<label for=\"$modelItem\">$title</label>";
-                $fieldHtml .= "\n\t\t\t<input class=\"form-control\" id=\"$modelItem\" name=\"$modelItem\" value=\"{{isset(\$item) ? \$item->$modelItem : old('$modelItem')}}\" type=\"text\">";
-                $fieldHtml .= "\n\t\t</div>";
+        $defaultHtml = "\n\t\t<div class=\"form-group\">";
+        $defaultHtml .= "\n\t\t\t<label for=\"$modelItem\">$title</label>";
+        $defaultHtml .= "\n\t\t\tINPUT_HTML";
+        $defaultHtml .= "\n\t\t\t@error('$modelItem')";
+        $defaultHtml .= "\n\t\t\t\t<div class=\"alert alert-danger\">{{ \$message }}</div>";
+        $defaultHtml .= "\n\t\t\t@enderror";
+        $defaultHtml .= "\n\t\t</div>";
 
-                return $fieldHtml;
-            case 'unsignedInteger':
-                $PascalCaseModel = str_replace("_id", "", $modelItem);
-                $content  = "\n\t\t\t<select name='$modelItem'>";
+        switch ($field) {
+            case AvailableColumnTypes::INTEGER:
+                $inputHtml = "<input class=\"form-control\" id=\"$modelItem\" name=\"$modelItem\" value=\"{{isset(\$item) ? \$item->$modelItem : old('$modelItem')}}\" type=\"number\">";
+                return str_replace("INPUT_HTML", $inputHtml, $defaultHtml);
+            case AvailableColumnTypes::DOUBLE:
+                $inputHtml = "<input class=\"form-control\" id=\"$modelItem\" name=\"$modelItem\" value=\"{{isset(\$item) ? \$item->$modelItem : old('$modelItem')}}\" type=\"number\" step=\"0.01\">";
+                return str_replace("INPUT_HTML", $inputHtml, $defaultHtml);
+            case AvailableColumnTypes::DATE:
+                $inputHtml = "<input class=\"form-control\" id=\"$modelItem\" name=\"$modelItem\" value=\"{{isset(\$item) ? \$item->$modelItem : old('$modelItem')}}\" type=\"date\">";
+                return str_replace("INPUT_HTML", $inputHtml, $defaultHtml);
+            case AvailableColumnTypes::DATETIME:
+                $inputHtml = "<input class=\"form-control\" id=\"$modelItem\" name=\"$modelItem\" value=\"{{isset(\$item) ? str_replace(' ', 'T', \$item->$modelItem) : old('$modelItem')}}\" type=\"datetime-local\">";
+                return str_replace("INPUT_HTML", $inputHtml, $defaultHtml);
+            case AvailableColumnTypes::TIME:
+                $inputHtml = "<input class=\"form-control\" id=\"$modelItem\" name=\"$modelItem\" value=\"{{isset(\$item) ? \$item->$modelItem : old('$modelItem')}}\" type=\"time\">";
+                return str_replace("INPUT_HTML", $inputHtml, $defaultHtml);
+            case AvailableColumnTypes::BOOLEAN:
+                $inputHtml = "<input class=\"form-check-input\" id=\"$modelItem\" name=\"$modelItem\" type=\"checkbox\" value=\"true\"";
+                $inputHtml .= "\n\t\t\t\t@if(isset(\$item) && \$item->$modelItem)";
+                $inputHtml .= "\n\t\t\t\t\tchecked";
+                $inputHtml .= "\n\t\t\t\t@endif";
+                $inputHtml .= "\n\t\t\t>";
+
+                return str_replace("INPUT_HTML", $inputHtml, $defaultHtml);
+            case AvailableColumnTypes::TEXT:
+                $inputHtml = "<textarea class=\"form-control\" id=\"$modelItem\" name=\"$modelItem\">{{isset(\$item) ? \$item->$modelItem : old('$modelItem')}}</textarea>";
+                return str_replace("INPUT_HTML", $inputHtml, $defaultHtml);
+            case AvailableColumnTypes::STRING:
+            default:
+                $inputHtml = "<input class=\"form-control\" id=\"$modelItem\" name=\"$modelItem\" value=\"{{isset(\$item) ? \$item->$modelItem : old('$modelItem')}}\" type=\"text\">";
+                return str_replace("INPUT_HTML", $inputHtml, $defaultHtml);
+            case AvailableColumnTypes::FOREIGN_ID:
+                $inputHtml  = "\n\t\t\t<select name=\"$modelItem\" id=\"$modelItem\" class=\"form-control\">";
 
                 $txtSelect = $this->translated['select'];
                 $txtDescription = $this->translated['description'];
 
-                $content .= "\n\t\t\t\t<option value='0'>$txtSelect ". str_replace('_', ' ', ucwords($PascalCaseModel, '_')) ."</option>";
+                $fkModel = str_replace("_id", "", $modelItem);
+                $ucWordsModel = ucwords($fkModel, "_");
+                $inputHtml .= "\n\t\t\t\t<option value=\"0\">$txtSelect ". str_replace('_', ' ', $ucWordsModel) ."</option>";
 
-                $PascalCaseModel = $PascalCaseModel . "s";
-                $fkVarNames = str_replace('_', '', ucwords($PascalCaseModel, '_'));
-                $fkVarNames = lcfirst($fkVarNames);
-                $content .= "\n\t\t\t\t@foreach(\$$fkVarNames as \$fk)";
-                $content .= "\n\t\t\t\t\t<option value=\"{{\$fk->id}}\" @if(isset(\$item) && \$fk->id == \$item->$modelItem) selected @endif>";
-                $content .= "\n\t\t\t\t\t\t{{\$fk->$txtDescription}}";
-                $content .= "\n\t\t\t\t\t</option>";
-                $content .= "\n\t\t\t\t@endforeach";
-                $content .= "\n\t\t\t</select>";
+                $lcModelList = lcfirst($ucWordsModel);
+                $ucWordsModelList = $lcModelList . "List";
+                $fkVarName = str_replace('_', '', $ucWordsModelList);
+                $inputHtml .= "\n\t\t\t\t@foreach(\$$fkVarName as \$$lcModelList)";
+                $lcModelListId = $lcModelList . "->id";
+                $inputHtml .= "\n\t\t\t\t\t<option value=\"{{\$$lcModelListId}}\"";
+                $inputHtml .= "\n\t\t\t\t\t\t@if((isset(\$item) && \$$lcModelListId == \$item->$modelItem)||\$$lcModelListId == old('$modelItem')) selected @endif";
+                $inputHtml .= "\n\t\t\t\t\t>";
+                $inputHtml .= "\n\t\t\t\t\t\t{{\$$lcModelList->$txtDescription}}";
+                $inputHtml .= "\n\t\t\t\t\t</option>";
+                $inputHtml .= "\n\t\t\t\t@endforeach";
+                $inputHtml .= "\n\t\t\t</select>";
 
-                return $content;
+                return str_replace("INPUT_HTML", $inputHtml, $defaultHtml);
         }
     }
 }
