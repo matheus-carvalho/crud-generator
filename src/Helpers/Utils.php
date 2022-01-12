@@ -88,6 +88,7 @@ class Utils
     public function getRequiredFields(array $fieldList): array
     {
         $requiredFields = [];
+        $nullableFields = [];
 
         foreach ($fieldList as $field) {
             if ($this->isReservedField($field)) {
@@ -99,13 +100,15 @@ class Utils
                 continue;
             }
 
+            $modelName = $this->getStringBetween($field, "'", "'");
             if (strpos($field, "->nullable()") === false) {
-                $modelName = $this->getStringBetween($field, "'", "'");
                 $requiredFields[] = $modelName;
+            } else {
+                $nullableFields[] = $modelName;
             }
         }
 
-        return $requiredFields;
+        return [$requiredFields, $nullableFields];
     }
 
     /**

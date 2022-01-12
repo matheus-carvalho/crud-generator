@@ -144,9 +144,14 @@ class RequestWorker
         $content .= "\n\t\treturn [\n";
 
         $requiredCount = 0;
-        foreach ($this->utilsHelper->getRequiredFields($this->fieldList) as $requiredField) {
+        [$requiredFields, $nullableFields] = $this->utilsHelper->getRequiredFields($this->fieldList);
+        foreach ($requiredFields as $requiredField) {
             $content .= "\t\t\t'$requiredField' => 'required',\n";
             $requiredCount++;
+        }
+
+        foreach ($nullableFields as $nullableField) {
+            $content .= "\t\t\t'$nullableField' => 'nullable',\n";
         }
 
         $foreignKeyCount = 0;
