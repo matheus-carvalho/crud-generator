@@ -154,6 +154,10 @@ class ViewWorker
         $txtDelete = $this->translated['delete'];
         $txtDescription = $this->translated['description'];
         $txtActions = $this->translated['actions'];
+        $txtEmptyList = $this->translator->parseTranslated(
+            $this->translated['empty_list'],
+            [ $this->modelName ]
+        );
 
         $content = "\n\n\t<div class=\"row overflow-auto\">";
         $content .= "\n\t\t<table class=\"list-table table-stripped mt-20 w-100\">";
@@ -203,7 +207,7 @@ class ViewWorker
         $content .= "\n\t\t\t\t\t\t</div>";
         $content .= "\n\t\t\t\t\t</td>";
         $content .= "\n\t\t\t\t</tr>";
-        $content .= "\n\t\t\t@empty <tr> <td>No $this->modelName found!</td> </tr>";
+        $content .= "\n\t\t\t@empty <tr> <td colspan=\"100%\">$txtEmptyList</td> </tr>";
         $content .= "\n\t\t\t@endforelse";
         $content .= "\n\t\t\t</tbody>";
         $content .= "\n\t\t</table>";

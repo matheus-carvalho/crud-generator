@@ -30,6 +30,7 @@ class Translator
                 'description' => 'name',
                 'actions' => 'Actions',
                 'list' => '$1 List',
+                'empty_list' => 'No $1 found!',
                 'request_messages' => [
                     'required' => 'The :attribute field is required.',
                     'min' => 'You must select the :attribute.'
@@ -57,14 +58,15 @@ class Translator
                 'delete' => 'Deletar',
                 'description' => 'nome',
                 'actions' => 'Ações',
-                'list' => 'Lista de $1',
+                'list' => 'Listagem de $1',
+                'empty_list' => 'Nenhum registro encontrado em $1!',
                 'request_messages' => [
                     'required' => 'Você deve preencher o campo :attribute.',
                     'min' => 'Você deve selecionar um item no campo :attribute.'
                 ],
                 'pagination' => [
-                    'previous' => 'Próxima',
-                    'next' => 'Anterior',
+                    'previous' => 'Anterior',
+                    'next' => 'Próxima',
                     'info' => 'Mostrando de {{$paginator->firstItem()}} a {{$paginator->lastItem()}} de {{$paginator->total()}} registros'
                 ]
             ]
