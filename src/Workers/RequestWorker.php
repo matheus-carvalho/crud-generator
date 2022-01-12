@@ -2,7 +2,7 @@
 
 namespace Matheuscarvalho\Crudgenerator\Workers;
 
-use Matheuscarvalho\Crudgenerator\Helpers\Translator;
+use Matheuscarvalho\Crudgenerator\Helpers\State;
 use Matheuscarvalho\Crudgenerator\Helpers\Utils;
 
 class RequestWorker
@@ -18,11 +18,6 @@ class RequestWorker
     private $modelName;
 
     /**
-     * @var array
-     */
-    private $fieldList;
-
-    /**
      * @var Utils
      */
     private $utilsHelper;
@@ -33,33 +28,51 @@ class RequestWorker
     private $translated;
 
     /**
-     * @param string $requestName
-     * @param string $modelName
-     * @param array $fieldList
-     * @param string $lang
-     * @return void
+     * @var State
      */
-    public function build(string $requestName, string $modelName, array $fieldList, string $lang)
+    private $state;
+
+    /**
+     * @var bool
+     */
+    private $hasNotNullableBooleans;
+
+    /**
+     * @var int
+     */
+    private $requiredCount;
+
+    /**
+     * @var int
+     */
+    private $foreignKeyCount;
+
+    public function __construct()
     {
-        $this->requestName = $requestName;
-        $this->modelName = $modelName;
-        $this->fieldList = $fieldList;
         $this->utilsHelper = new Utils();
-        $translator = new Translator();
-        $this->translated = $translator->getTranslated($lang);
+        $this->state = State::getInstance();
+    }
+
+    /**
+     * Builds the RequestWorker file
+     */
+    public function build()
+    {
+        $this->requestName = $this->state->getRequestName();
+        $this->modelName = $this->state->getModelName();
+        $this->translated = $this->state->getTranslated();
 
         /** @noinspection PhpUndefinedFunctionInspection */
-        $filePath = app_path('Http/Requests/') . $requestName . ".php";
+        $filePath = app_path('Http/Requests/') . $this->requestName . ".php";
 
-        $hasNotNullableBooleans = count($this->utilsHelper->getNotNullableBooleans($this->fieldList)) > 0;
+        $this->hasNotNullableBooleans = count($this->state->getNotNullableBooleans()) > 0;
 
-        $content = $this->appendHeader($hasNotNullableBooleans);
+        $content = $this->appendHeader();
         $content .= $this->appendAuthorize();
 
-        $content .= $this->appendValidationData($hasNotNullableBooleans);
-        [$rulesContent, $requiredCount, $foreignKeyCount] = $this->appendRules();
-        $content .= $rulesContent;
-        $content .= $this->appendMessages($requiredCount, $foreignKeyCount);
+        $content .= $this->appendValidationData();
+        $content .= $this->appendRules();
+        $content .= $this->appendMessages();
 
         $content .= "\n}";
         file_put_contents($filePath, $content);
@@ -67,15 +80,14 @@ class RequestWorker
 
     /**
      * Appends the header to the content
-     * @param bool $hasNotNullableBooleans
      * @return string
      */
-    private function appendHeader(bool $hasNotNullableBooleans): string
+    private function appendHeader(): string
     {
         $content = "<?php";
         $content .= "\n\nnamespace App\Http\Requests;\n";
 
-        if ($hasNotNullableBooleans) {
+        if ($this->hasNotNullableBooleans) {
             $content .= "\nuse App\Models\\$this->modelName;";
         }
 
@@ -107,16 +119,15 @@ class RequestWorker
 
     /**
      * Appends the validationData method to the content
-     * @param bool $hasNotNullableBooleans
      * @return string
      */
-    private function appendValidationData(bool $hasNotNullableBooleans): string
+    private function appendValidationData(): string
     {
         $content = "\n\n\tpublic function validationData(): array";
         $content .= "\n\t{";
         $content .= "\n\t\t\$data = parent::validationData();";
 
-        if ($hasNotNullableBooleans) {
+        if ($this->hasNotNullableBooleans) {
             $content .= "\n\n\t\tforeach ($this->modelName::\$notNullableBooleans as \$notNullableBoolean) {";
             $content .= "\n\t\t\t\$data[\$notNullableBoolean] = \$data[\$notNullableBoolean] ?? false;";
             $content .= "\n\t\t}";
@@ -130,9 +141,9 @@ class RequestWorker
 
     /**
      * Appends the rules method to the content
-     * @return array
+     * @return string
      */
-    private function appendRules(): array
+    private function appendRules(): string
     {
         $content = "\n\n\t/**";
         $content .= "\n\t * Get the validation rules that apply to the request.";
@@ -143,41 +154,41 @@ class RequestWorker
         $content .= "\n\t{";
         $content .= "\n\t\treturn [\n";
 
-        $requiredCount = 0;
-        [$requiredFields, $nullableFields] = $this->utilsHelper->getRequiredFields($this->fieldList);
+        $this->requiredCount = 0;
+        [$requiredFields, $nullableFields] = $this->utilsHelper->getRequiredFields();
         foreach ($requiredFields as $requiredField) {
             $content .= "\t\t\t'$requiredField' => 'required',\n";
-            $requiredCount++;
+            $this->requiredCount++;
         }
 
+        $nullableCount = 0;
         foreach ($nullableFields as $nullableField) {
             $content .= "\t\t\t'$nullableField' => 'nullable',\n";
+            $nullableCount++;
         }
 
-        $foreignKeyCount = 0;
-        foreach ($this->utilsHelper->checkForeignKeys($this->fieldList) as $foreignKey) {
-            $foreignKey = lcfirst($foreignKey) . "_id";
+        $this->foreignKeyCount = 0;
+        foreach ($this->state->getForeignKeyModels() as $foreignKey) {
+            $foreignKey = strtolower($foreignKey) . "_id";
             $content .= "\t\t\t'$foreignKey' => 'required|integer|min:1',\n";
-            $foreignKeyCount++;
+            $this->foreignKeyCount++;
         }
 
-        if (($requiredCount + $foreignKeyCount) > 0) {
+        if (($this->requiredCount + $this->foreignKeyCount + $nullableCount) > 0) {
             $content = rtrim($content, ",\n");
         }
 
         $content .= "\n\t\t];";
         $content .= "\n\t}";
 
-        return [$content, $requiredCount, $foreignKeyCount];
+        return $content;
     }
 
     /**
      * Appends the messages method to the content
-     * @param int $requiredCount
-     * @param int $foreignKeyCount
      * @return string
      */
-    private function appendMessages(int $requiredCount, int $foreignKeyCount): string
+    private function appendMessages(): string
     {
         $content = "\n\n\tpublic function messages(): array";
         $content .= "\n\t{";
@@ -186,15 +197,15 @@ class RequestWorker
         $requiredMessage = $this->translated['request_messages']['required'];
         $minMessage = $this->translated['request_messages']['min'];
 
-        if (($requiredCount + $foreignKeyCount) > 0) {
+        if (($this->requiredCount + $this->foreignKeyCount) > 0) {
             $content .= "\t\t\t'required' => '$requiredMessage',\n";
         }
 
-        if ($foreignKeyCount > 0) {
+        if ($this->foreignKeyCount > 0) {
             $content .= "\t\t\t'min' => '$minMessage',\n";
         }
 
-        if (($requiredCount + $foreignKeyCount) > 0) {
+        if (($this->requiredCount + $this->foreignKeyCount) > 0) {
             $content = rtrim($content, ",\n");
         }
 

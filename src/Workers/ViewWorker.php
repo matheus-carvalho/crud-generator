@@ -3,6 +3,7 @@
 namespace Matheuscarvalho\Crudgenerator\Workers;
 
 use Matheuscarvalho\Crudgenerator\Helpers\AvailableColumnTypes;
+use Matheuscarvalho\Crudgenerator\Helpers\State;
 use Matheuscarvalho\Crudgenerator\Helpers\Translator;
 use Matheuscarvalho\Crudgenerator\Helpers\Utils;
 
@@ -26,11 +27,6 @@ class ViewWorker
     /**
      * @var string
      */
-    private $style;
-
-    /**
-     * @var string
-     */
     private $modelName;
 
     /**
@@ -38,29 +34,28 @@ class ViewWorker
      */
     private $fieldList;
 
+    /**
+     * @var State
+     */
+    private $state;
+
     public function __construct()
     {
         $this->translator = new Translator();
         $this->utilsHelper = new Utils();
+        $this->state = State::getInstance();
     }
 
     /**
      * Builds the views files
-     * @param string $modelName
-     * @param string $lang
-     * @param array $fieldList
-     * @param string $style
-     * @return string
      */
-    public function build(string $modelName, string $lang, array $fieldList, string $style): string
+    public function build()
     {
-        $this->style = $style;
-        $this->modelName = $modelName;
-        $this->fieldList = $fieldList;
+        $this->modelName = $this->state->getModelName();
+        $this->fieldList = $this->state->getFieldList();
+        $this->translated = $this->state->getTranslated();
 
-        $this->translated = $this->translator->getTranslated($lang);
-
-        $viewFolder = lcfirst($modelName);
+        $viewFolder = lcfirst($this->modelName);
         /** @noinspection PhpUndefinedFunctionInspection */
         $viewsPath = resource_path('views');
         $fullPath = $viewsPath . "/" . $viewFolder;
@@ -73,7 +68,7 @@ class ViewWorker
         $this->buildCreate($fullPath);
         $this->buildPagination();
 
-        return $viewFolder;
+        $this->state->setViewFolder($viewFolder);
     }
 
     /**
@@ -87,7 +82,7 @@ class ViewWorker
         $content .= $this->openIndexContainer();
         $content .= $this->appendIndexHeader();
         $content .= $this->appendIndexTable();
-        $content .= $this->closeIndexContainer();
+        $content .= $this->closeContainer();
 
         file_put_contents($fullPath."/index.blade.php", $content);
     }
@@ -101,15 +96,6 @@ class ViewWorker
         $content = "<title>$this->modelName</title>\n";
         $content .= "\n<div class=\"container\">";
         return $content;
-    }
-
-    /**
-     * Appends the closing of index container
-     * @return string
-     */
-    private function closeIndexContainer(): string
-    {
-        return "\n</div>";
     }
 
     /**
@@ -152,7 +138,6 @@ class ViewWorker
     {
         $txtEdit = $this->translated['edit'];
         $txtDelete = $this->translated['delete'];
-        $txtDescription = $this->translated['description'];
         $txtActions = $this->translated['actions'];
         $txtEmptyList = $this->translator->parseTranslated(
             $this->translated['empty_list'],
@@ -190,7 +175,7 @@ class ViewWorker
                 $navigation = rtrim($modelItem, "_id");
                 $navigation = str_replace('_', '', ucwords($navigation, '_'));
 
-                $content .= "\n\t\t\t\t\t<td>{{\$item->".$navigation."->$txtDescription}}</td>";
+                $content .= "\n\t\t\t\t\t<td>{{\$item->".$navigation."->name}}</td>";
             } else {
                 $content .= "\n\t\t\t\t\t<td>{{\$item->$modelItem}}</td>";
             }
@@ -230,13 +215,13 @@ class ViewWorker
         $content .= $this->openCreateContainer($txtCreate);
         $content .= $this->appendCreateHeader($txtCreate);
         $content .= $this->appendCreateForm();
-        $content .= $this->closeCreateContainer();
+        $content .= $this->closeContainer();
 
         file_put_contents($fullPath."/create.blade.php", $content);
     }
 
     /**
-     * Appends the opening of index container
+     * Appends the opening of create container
      * @param string $txtCreate
      * @return string
      */
@@ -249,10 +234,10 @@ class ViewWorker
     }
 
     /**
-     * Appends the closing of index container
+     * Appends the closing of a container
      * @return string
      */
-    private function closeCreateContainer(): string
+    private function closeContainer(): string
     {
         return "\n</div>";
     }
@@ -316,12 +301,13 @@ class ViewWorker
      */
     private function appendStyle(): string
     {
-        if ($this->style === "none") {
+        $style = $this->state->getStyle();
+        if ($style === "none") {
             return "";
         }
 
         /** @noinspection HtmlUnknownTarget */
-        return "<link href=\"{{asset('css/crudgenerator/$this->style.css')}}\" rel='stylesheet'>\n\n";
+        return "<link href=\"{{asset('css/crudgenerator/$style.css')}}\" rel='stylesheet'>\n\n";
     }
 
     /**
@@ -378,7 +364,6 @@ class ViewWorker
                 $inputHtml  = "\n\t\t\t<select name=\"$modelItem\" id=\"$modelItem\" class=\"form-control\">";
 
                 $txtSelect = $this->translated['select'];
-                $txtDescription = $this->translated['description'];
 
                 $fkModel = str_replace("_id", "", $modelItem);
                 $ucWordsModel = ucwords($fkModel, "_");
@@ -389,10 +374,11 @@ class ViewWorker
                 $fkVarName = str_replace('_', '', $ucWordsModelList);
                 $inputHtml .= "\n\t\t\t\t@foreach(\$$fkVarName as \$$lcModelList)";
                 $lcModelListId = $lcModelList . "->id";
+                $lcModelListName = $lcModelList . "->name";
                 $inputHtml .= "\n\t\t\t\t\t<option value=\"{{\$$lcModelListId}}\"";
                 $inputHtml .= "\n\t\t\t\t\t\t@if((isset(\$item) && \$$lcModelListId == \$item->$modelItem)||\$$lcModelListId == old('$modelItem')) selected @endif";
                 $inputHtml .= "\n\t\t\t\t\t>";
-                $inputHtml .= "\n\t\t\t\t\t\t{{\$$lcModelList->$txtDescription}}";
+                $inputHtml .= "\n\t\t\t\t\t\t{{\$$lcModelListName}}";
                 $inputHtml .= "\n\t\t\t\t\t</option>";
                 $inputHtml .= "\n\t\t\t\t@endforeach";
                 $inputHtml .= "\n\t\t\t</select>";

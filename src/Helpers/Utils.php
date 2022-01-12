@@ -5,6 +5,16 @@ namespace Matheuscarvalho\Crudgenerator\Helpers;
 class Utils
 {
     /**
+     * @var State
+     */
+    private $state;
+
+    public function __construct()
+    {
+        $this->state = State::getInstance();
+    }
+
+    /**
      * Return a part of string between two characters
      * @param string $str
      * @param string $from
@@ -34,12 +44,11 @@ class Utils
     }
 
     /**
-     * Checks if exists foreign keys and if so, return correspondent models
-     * @param array $fieldList
-     * @return array
+     * Define and store to state the foreign key models
      */
-    public function checkForeignKeys(array $fieldList): array
+    public function defineForeignKeyModels()
     {
+        $fieldList = $this->state->getFieldList();
         $models = [];
 
         foreach ($fieldList as $field) {
@@ -53,16 +62,16 @@ class Utils
             $modelName = str_replace('_', '', ucwords($modelName, '_'));
             $models[] = $modelName;
         }
-        return $models;
+
+        $this->state->setForeignKeyModels($models);
     }
 
     /**
-     * Get all boolean fields that's not nullable
-     * @param array $fieldList
-     * @return array
+     * Define and store to state all boolean fields that's not nullable
      */
-    public function getNotNullableBooleans(array $fieldList): array
+    public function defineNotNullableBooleans()
     {
+        $fieldList = $this->state->getFieldList();
         $booleans = [];
 
         foreach ($fieldList as $field) {
@@ -77,16 +86,16 @@ class Utils
             }
         }
 
-        return $booleans;
+        $this->state->setNotNullableBooleans($booleans);
     }
 
     /**
-     * Get all required fields
-     * @param array $fieldList
+     * Get all required and nullable fields
      * @return array
      */
-    public function getRequiredFields(array $fieldList): array
+    public function getRequiredFields(): array
     {
+        $fieldList = $this->state->getFieldList();
         $requiredFields = [];
         $nullableFields = [];
 

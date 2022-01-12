@@ -2,6 +2,7 @@
 
 namespace Matheuscarvalho\Crudgenerator\Workers;
 
+use Matheuscarvalho\Crudgenerator\Helpers\State;
 use Matheuscarvalho\Crudgenerator\Helpers\Utils;
 
 class ModelWorker
@@ -12,53 +13,54 @@ class ModelWorker
     private $utilsHelper;
 
     /**
-     * @var array
+     * @var State
      */
-    private $fieldList;
+    private $state;
 
     public function __construct()
     {
         $this->utilsHelper = new Utils();
+        $this->state = State::getInstance();
     }
 
     /**
      * Builds the Model file
-     * @param string $modelName
-     * @param string $tableName
-     * @param array $fieldList
      * @return void
      */
-    public function build(string $modelName, string $tableName, array $fieldList)
+    public function build()
     {
-        $this->fieldList = $fieldList;
+        $modelName = $this->state->getModelName();
+
         /** @noinspection PhpUndefinedFunctionInspection */
         $filePath = app_path('Models/') . $modelName . ".php";
 
-        $foreignKeys = $this->utilsHelper->checkForeignKeys($this->fieldList);
+        $this->utilsHelper->defineForeignKeyModels();
 
-        $content = $this->appendHeaders($modelName, $foreignKeys);
-        $content .= $this->appendTableName($tableName);
+        $content = $this->appendHeaders($modelName);
+        $content .= $this->appendTableName();
         $content .= $this->appendFillable();
 
-        $notNullableBooleans = $this->utilsHelper->getNotNullableBooleans($this->fieldList);
+        $this->utilsHelper->defineNotNullableBooleans();
+        $notNullableBooleans = $this->state->getNotNullableBooleans();
+
         if (count($notNullableBooleans) > 0) {
             $content .= $this->appendNotNullableBooleans($notNullableBooleans);
         }
 
-        $content .= $this->appendNavigationProperties($foreignKeys);
+        $content .= $this->appendNavigationProperties();
         $content .= "\n}";
 
         file_put_contents($filePath, $content);
     }
 
     /**
-     * Add the headers to the content
+     * Appends the headers to the content
      * @param string $modelName
-     * @param array $foreignKeys
      * @return string
      */
-    private function appendHeaders(string $modelName, array $foreignKeys): string
+    private function appendHeaders(string $modelName): string
     {
+        $foreignKeys = $this->state->getForeignKeyModels();
         $content = "<?php";
         $content .= "\n\nnamespace App\Models;";
         $content .= "\n\nuse Illuminate\Database\Eloquent\Model;";
@@ -77,27 +79,29 @@ class ModelWorker
     }
 
     /**
-     * Add the table name to the content
-     * @param string $tableName
+     * Appends the table name to the content
      * @return string
      */
-    private function appendTableName(string $tableName): string
+    private function appendTableName(): string
     {
+        $tableName = $this->state->getTableName();
         return "\tprotected \$table = " . "'$tableName';";
     }
 
     /**
-     * Add the fillable to the content
+     * Appends the fillable to the content
      * @return string
      */
     private function appendFillable(): string
     {
+        $fieldList = $this->state->getFieldList();
         $content = "\n\n\tprotected \$fillable = [\n";
 
-        foreach($this->fieldList as $field) {
+        foreach($fieldList as $field) {
             $fillableItem = $this->utilsHelper->getStringBetween($field, "'", "'");
-            if ($fillableItem != "id" && $fillableItem != "")
+            if ($fillableItem != "id" && $fillableItem != "") {
                 $content .= "\t\t'" . $fillableItem . "',\n";
+            }
         }
 
         $content = rtrim($content, ",\n");
@@ -126,12 +130,12 @@ class ModelWorker
     }
 
     /**
-     * Add the navigation properties to the content
-     * @param array $foreignKeys
+     * Appends the navigation properties to the content
      * @return string
      */
-    private function appendNavigationProperties(array $foreignKeys): string
+    private function appendNavigationProperties(): string
     {
+        $foreignKeys = $this->state->getForeignKeyModels();
         $content = "";
         if (!$foreignKeys) {
             return $content;

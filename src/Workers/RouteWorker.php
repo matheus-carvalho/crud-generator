@@ -2,6 +2,8 @@
 
 namespace Matheuscarvalho\Crudgenerator\Workers;
 
+use Matheuscarvalho\Crudgenerator\Helpers\State;
+
 class RouteWorker
 {
     /**
@@ -10,27 +12,21 @@ class RouteWorker
     private $controllerName;
 
     /**
-     * @var string
+     * @var State
      */
-    private $resourceName;
+    private $state;
 
-    /**
-     * @var string
-     */
-    private $modelName;
+    public function __construct()
+    {
+        $this->state = State::getInstance();
+    }
 
     /**
      * Builds the route file
-     * @param string $controllerName
-     * @param string $resourceName
-     * @param string $modelName
-     * @return void
      */
-    public function build(string $controllerName, string $resourceName, string $modelName)
+    public function build()
     {
-        $this->controllerName = $controllerName;
-        $this->resourceName = $resourceName;
-        $this->modelName = $modelName;
+        $this->controllerName = $this->state->getControllerName();
 
         $routesFile = $this->getRoutesFile();
         $this->importController($routesFile);
@@ -92,8 +88,11 @@ class RouteWorker
      */
     private function buildRoute(string $verb, string $method, bool $appendsId = false): string
     {
-        $routeName = $verb === "delete" ? $verb . $this->modelName : $method . $this->modelName;
-        $routePath = "/$this->resourceName";
+        $viewFolder = $this->state->getViewFolder();
+        $modelName = $this->state->getModelName();
+
+        $routeName = $verb === "delete" ? $verb . $modelName : $method . $modelName;
+        $routePath = "/$viewFolder";
 
         if ($method === "create" || $method === "edit") {
             $routePath .= "/$method";

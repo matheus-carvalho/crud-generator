@@ -7,6 +7,8 @@
 namespace Matheuscarvalho\Crudgenerator\Commands;
 
 use Illuminate\Console\Command;
+use Matheuscarvalho\Crudgenerator\Helpers\State;
+use Matheuscarvalho\Crudgenerator\Helpers\Translator;
 use Matheuscarvalho\Crudgenerator\Workers\ControllerWorker;
 use Matheuscarvalho\Crudgenerator\Workers\MigrationWorker;
 use Matheuscarvalho\Crudgenerator\Workers\ModelWorker;
@@ -42,35 +44,9 @@ class CrudGenerator extends Command
     protected $description = 'Generate a CRUD with Model, Controller, routes, FormRequest and views based on given Migration.';
 
     /**
-     * @var MigrationWorker
+     * @var State
      */
-    private $migrationWorker;
-
-    /**
-     * @var ModelWorker
-     */
-    private $modelWorker;
-
-    /**
-     * @var ViewWorker
-     */
-    private $viewWorker;
-
-    /**
-     * @var ControllerWorker
-     */
-    private $controllerWorker;
-
-    /**
-     * @var RouteWorker
-     */
-    private $routeWorker;
-
-    /**
-     * @var RequestWorker
-     */
-    private $requestWorker;
-
+    private $state;
     /**
      * Create a new command instance.
      *
@@ -80,12 +56,7 @@ class CrudGenerator extends Command
     {
         /** @noinspection PhpUndefinedClassInspection */
         parent::__construct();
-        $this->migrationWorker = new MigrationWorker();
-        $this->modelWorker = new ModelWorker();
-        $this->viewWorker = new ViewWorker();
-        $this->controllerWorker = new ControllerWorker();
-        $this->routeWorker = new RouteWorker();
-        $this->requestWorker = new RequestWorker();
+        $this->state = State::getInstance();
     }
 
     /**
@@ -93,45 +64,159 @@ class CrudGenerator extends Command
      */
     public function handle()
     {
-        $migration = $this->argument('migration');
-        $modelName = $this->option('resource-name') ?? null;
-        $style = $this->defineStyle();
+        $modelName = $this->option('resource') ?? null;
+        $migration = $this->argument('table');
 
-        if (!$modelName) {
-            $this->error('Not enough arguments (missing: "--resource-name").');
+        if (!$this->validateArguments($modelName, $migration)) {
+            return;
         }
 
-        $language = $this->defineLanguage();
+        $this->defineConfigs();
 
-        [$fieldList, $tableName] = $this->migrationWorker->scan($migration);
+        if (!$this->scanMigration()) {
+            $this->error('Invalid migration.');
+            return;
+        }
 
+        $this->buildModel($modelName);
+        $this->buildViews();
+        $this->buildRequest($modelName);
+        $this->buildController($modelName);
+        $this->buildRoutes();
+    }
+
+    /**
+     * Scans and validate migration
+     * @return bool
+     */
+    private function scanMigration(): bool
+    {
+        $migrationWorker = new MigrationWorker();
+        if (!$migrationWorker->scan()) {
+            return false;
+        }
+
+        $tableName = $this->state->getTableName();
         if (!$tableName) {
-            $this->error('Invalid migration (missing: table name).');
+            return false;
         }
 
         $this->call('migrate');
+        return true;
+    }
+
+    /**
+     * Builds the model
+     * @param string $modelName
+     * @return void
+     */
+    private function buildModel(string $modelName)
+    {
         $this->call('make:model', [
             'name' => $modelName
         ]);
-        $this->modelWorker->build($modelName, $tableName, $fieldList);
-        $viewFolder = $this->viewWorker->build($modelName, $language, $fieldList, $style);
-        $this->info('Views created successfully.');
 
+        $modelWorker = new ModelWorker();
+        $modelWorker->build();
+    }
+
+    /**
+     * Builds the views
+     * @return void
+     */
+    private function buildViews()
+    {
+        $viewWorker = new ViewWorker();
+        $viewWorker->build();
+        $this->info('Views created successfully.');
+    }
+
+    /**
+     * Builds the request
+     * @param string $modelName
+     * @return void
+     */
+    private function buildRequest(string $modelName)
+    {
         $requestName = $modelName . "Request";
+        $this->state->setRequestName($requestName);
+
         $this->call('make:request', [
             'name' => $requestName
         ]);
-        $this->requestWorker->build($requestName, $modelName, $fieldList, $language);
+        $requestWorker = new RequestWorker();
+        $requestWorker->build();
+    }
 
+    /**
+     * Builds controller
+     * @param string $modelName
+     * @return void
+     */
+    private function buildController(string $modelName)
+    {
         $controllerName = ucfirst($modelName) . "Controller";
+        $this->state->setControllerName($controllerName);
+
         $this->call('make:controller', [
             'name' => $controllerName
         ]);
 
-        $paginationPerPage = $this->definePaginationPerPage();
-        $this->controllerWorker->build($controllerName, $modelName, $fieldList, $viewFolder, $language, $paginationPerPage);
-        $this->routeWorker->build($controllerName, $viewFolder, $modelName);
+        $controllerWorker = new ControllerWorker();
+        $controllerWorker->build();
+    }
+
+    /**
+     * Builds routes
+     * @return void
+     */
+    private function buildRoutes()
+    {
+        $routeWorker = new RouteWorker();
+        $routeWorker->build();
         $this->info('Routes created successfully.');
+    }
+
+    /**
+     * Defines and store the configs in state
+     * @return void
+     */
+    private function defineConfigs()
+    {
+        $style = $this->defineStyle();
+        $this->state->setStyle($style);
+
+        $translator = new Translator();
+        $language = $this->defineLanguage();
+        $translated = $translator->getTranslated($language);
+        $this->state->setTranslated($translated);
+
+        $paginationPerPage = $this->definePaginationPerPage();
+        $this->state->setPaginationPerPage($paginationPerPage);
+    }
+
+    /**
+     * Validate the required arguments
+     * @param string|null $modelName
+     * @param string $migration
+     * @return bool
+     */
+    private function validateArguments(?string $modelName, string $migration): bool
+    {
+        if (!$modelName) {
+            $this->error('Not enough arguments (missing: "--resource").');
+            return false;
+        }
+
+        if (!$migration) {
+            $this->error('Not enough arguments (missing: "table").');
+            return false;
+        }
+
+        $this->state->setMigration($migration);
+        $this->state->setModelName($modelName);
+
+        return true;
     }
 
     /**

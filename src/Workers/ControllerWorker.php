@@ -2,16 +2,11 @@
 
 namespace Matheuscarvalho\Crudgenerator\Workers;
 
+use Matheuscarvalho\Crudgenerator\Helpers\State;
 use Matheuscarvalho\Crudgenerator\Helpers\Translator;
-use Matheuscarvalho\Crudgenerator\Helpers\Utils;
 
 class ControllerWorker
 {
-    /**
-     * @var Utils
-     */
-    private $utilsHelper;
-
     /**
      * @var Translator
      */
@@ -38,50 +33,53 @@ class ControllerWorker
     private $controllerName;
 
     /**
-     * @var int
+     * @var string
      */
-    private $paginationPerPage;
+    private $requestName;
+
+    /**
+     * @var State
+     */
+    private $state;
+
+    /**
+     * @var string
+     */
+    private $fkQueryContent;
+
+    /**
+     * @var string
+     */
+    private $compactContent;
 
     public function __construct()
     {
-        $this->utilsHelper = new Utils();
         $this->translator = new Translator();
+        $this->state = State::getInstance();
     }
 
     /**
      * Builds the Controller file
-     * @param string $controllerName
-     * @param string $modelName
-     * @param array $fieldList
-     * @param string $viewFolder
-     * @param string $lang
-     * @param int $paginationPerPage
-     * @return void
      */
-    public function build(string $controllerName, string $modelName, array $fieldList, string $viewFolder, string $lang, int $paginationPerPage)
+    public function build()
     {
-        $this->modelName = $modelName;
-        $this->viewFolder = $viewFolder;
-        $this->controllerName = $controllerName;
-        $this->paginationPerPage = $paginationPerPage;
-        $this->translated = $this->translator->getTranslated($lang);
+        $this->modelName = $this->state->getModelName();
+        $this->viewFolder = $this->state->getViewFolder();
+        $this->controllerName = $this->state->getControllerName();
+        $this->translated = $this->state->getTranslated();
+        $this->requestName = $this->state->getRequestName();
 
         /** @noinspection PhpUndefinedFunctionInspection */
-        $filePath = app_path('Http/Controllers/') . $controllerName . ".php";
+        $filePath = app_path('Http/Controllers/') . $this->controllerName . ".php";
 
-        $requestName = $this->modelName . "Request";
+        $foreignKeys = $this->state->getForeignKeyModels();
 
-        [
-            $content,
-            $foreignKeys,
-            $fkContents,
-            $fkVarNames
-        ] = $this->appendHeaders($fieldList, $requestName);
+        $content = $this->appendHeaders($foreignKeys);
         $content .= $this->appendIndex();
-        $content .= $this->appendCreate($foreignKeys, $fkContents, $fkVarNames);
-        $content .= $this->appendEdit($foreignKeys, $fkContents, $fkVarNames);
-        $content .= $this->appendStore($requestName);
-        $content .= $this->appendUpdate($requestName);
+        $content .= $this->appendCreate($foreignKeys);
+        $content .= $this->appendEdit($foreignKeys);
+        $content .= $this->appendStore();
+        $content .= $this->appendUpdate();
         $content .= $this->appendDelete();
 
         $content .= "\n}";
@@ -90,52 +88,46 @@ class ControllerWorker
 
     /**
      * Add the headers to the content and prepare the foreign keys
-     * @param array $fieldList
-     * @param string $requestName
-     * @return array
+     * @param array $foreignKeys
+     * @return string
      */
-    private function appendHeaders(array $fieldList, string $requestName): array
+    private function appendHeaders(array $foreignKeys): string
     {
-
         $content = "<?php";
         $content .= "\n\nnamespace App\Http\Controllers;";
-        $content .= "\n\nuse App\Http\Requests\\$requestName;";
+        $content .= "\n\nuse App\Http\Requests\\$this->requestName;";
         $content .= "\nuse Illuminate\Http\RedirectResponse;";
         $content .= "\nuse Illuminate\View\View;";
         $content .= "\nuse App\Models\\$this->modelName;";
 
-        $foreignKeys = $this->utilsHelper->checkForeignKeys($fieldList);
-        $fkContents = '';
-        $fkVarNames = '';
+        $this->compactContent = '';
+        $this->fkQueryContent = '';
         if ($foreignKeys) {
             foreach ($foreignKeys as $fk) {
                 $content .= "\nuse App\Models\\$fk;";
 
-                $fkVarName = lcfirst($fk) . 'List';
-                $fkVarNames .= "'$fkVarName'" . ", ";
-                $fkContents .= "\n\t\t\$$fkVarName = $fk::all();";
+                $fkNameCompact = lcfirst($fk) . 'List';
+                $this->compactContent .= "'$fkNameCompact'" . ", ";
+                $this->fkQueryContent .= "\n\t\t\$$fkNameCompact = $fk::all();";
             }
         }
 
         $content .= "\n\nclass $this->controllerName extends Controller\n{\n";
 
-        return [
-            $content,
-            $foreignKeys,
-            $fkContents,
-            $fkVarNames
-        ];
+        return $content;
     }
 
     /**
-     * Add the method index to the content
+     * Appends the method index to the content
      * @return string
      */
     private function appendIndex(): string
     {
+        $paginationPerPage = $this->state->getPaginationPerPage();
+
         $content = "\tpublic function index(): View";
         $content .= "\n\t{";
-        $content .= "\n\t\t\$perPage = $this->paginationPerPage;";
+        $content .= "\n\t\t\$perPage = $paginationPerPage;";
         $content .= "\n\t\t\$items = $this->modelName::paginate(\$perPage);";
         $content .= "\n\t\treturn view('$this->viewFolder.index', compact('items'));";
         $content .= "\n\t}";
@@ -144,23 +136,21 @@ class ControllerWorker
     }
 
     /**
-     * Add the method create to the content
+     * Appends the method create to the content
      * @param array $foreignKeys
-     * @param string $fkContents
-     * @param string $fkVarNames
      * @return string
      */
-    private function appendCreate(array $foreignKeys, string $fkContents, string $fkVarNames): string
+    private function appendCreate(array $foreignKeys): string
     {
         $content = "\n\n\tpublic function create(): View";
         $content .= "\n\t{";
         if ($foreignKeys) {
-            $content .= $fkContents;
+            $content .= $this->fkQueryContent;
         }
         $content .= "\n\t\treturn view('$this->viewFolder.create'";
         if ($foreignKeys) {
             $content .= ", compact(";
-            $content .= rtrim($fkVarNames, ", ");
+            $content .= rtrim($this->compactContent, ", ");
             $content .= ")";
         }
         $content .= ");";
@@ -170,23 +160,21 @@ class ControllerWorker
     }
 
     /**
-     * Add the method edit to the content
+     * Appends the method edit to the content
      * @param array $foreignKeys
-     * @param string $fkContents
-     * @param string $fkVarNames
      * @return string
      */
-    private function appendEdit(array $foreignKeys, string $fkContents, string $fkVarNames): string
+    private function appendEdit(array $foreignKeys): string
     {
         $content  = "\n\n\tpublic function edit(\$id): View";
         $content .= "\n\t{";
         $content .= "\n\t\t\$item = $this->modelName::find(\$id);";
         if ($foreignKeys) {
-            $content .= $fkContents;
+            $content .= $this->fkQueryContent;
         }
         $content .= "\n\t\treturn view('$this->viewFolder.create', compact(";
         if ($foreignKeys) {
-            $content .= $fkVarNames;
+            $content .= $this->compactContent;
         }
         $content .= "'item'));";
         $content .= "\n\t}";
@@ -195,13 +183,12 @@ class ControllerWorker
     }
 
     /**
-     * Add the method store to the content
-     * @param string $requestName
+     * Appends the method store to the content
      * @return string
      */
-    private function appendStore(string $requestName): string
+    private function appendStore(): string
     {
-        $content   = "\n\n\tpublic function store($requestName \$request): RedirectResponse";
+        $content   = "\n\n\tpublic function store($this->requestName \$request): RedirectResponse";
         $content .= "\n\t{";
         $content  .= "\n\t\t\$data = \$request->validated();";
         $content  .= "\n\t\t\$insert = $this->modelName::create(\$data);";
@@ -225,13 +212,12 @@ class ControllerWorker
     }
 
     /**
-     * Add the method update to the content
-     * @param string $requestName
+     * Appends the method update to the content
      * @return string
      */
-    private function appendUpdate(string $requestName): string
+    private function appendUpdate(): string
     {
-        $content  = "\n\n\tpublic function update($requestName \$request, int \$id): RedirectResponse";
+        $content  = "\n\n\tpublic function update($this->requestName \$request, int \$id): RedirectResponse";
         $content .= "\n\t{";
         $content  .= "\n\t\t\$data = \$request->validated();";
         $content  .= "\n\n\t\t\$item = $this->modelName::find(\$id);";
@@ -246,7 +232,7 @@ class ControllerWorker
     }
 
     /**
-     * Add the method delete to the content
+     * Appends the method delete to the content
      * @return string
      */
     private function appendDelete(): string

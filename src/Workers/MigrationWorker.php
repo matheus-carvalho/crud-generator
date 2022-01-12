@@ -2,10 +2,16 @@
 
 namespace Matheuscarvalho\Crudgenerator\Workers;
 
+use Matheuscarvalho\Crudgenerator\Helpers\State;
 use Matheuscarvalho\Crudgenerator\Helpers\Utils;
 
 class MigrationWorker
 {
+    /**
+     * @var State
+     */
+    private $state;
+
     /**
      * @var Utils
      */
@@ -13,17 +19,22 @@ class MigrationWorker
 
     public function __construct()
     {
+        $this->state = State::getInstance();
         $this->utilsHelper = new Utils();
     }
 
     /**
-     * Scans migration to returns the field list and the table name
-     * @param $migration
-     * @return array
+     * @return bool
      */
-    public function scan($migration): array
+    public function scan(): bool
     {
-        $file = 'database/migrations/'.$migration;
+        $migration = $this->state->getMigration();
+        $filePath = "database/migrations/*_create_" . $migration . "_table.php*";
+        $file = glob($filePath)[0] ?? null;
+        if (!$file) {
+            return false;
+        }
+
         $canAdd = false;
         $fieldList = [];
         $tableName = "";
@@ -45,6 +56,8 @@ class MigrationWorker
             }
         }
 
-        return [ $fieldList, $tableName ];
+        $this->state->setFieldList($fieldList);
+        $this->state->setTableName($tableName);
+        return true;
     }
 }
