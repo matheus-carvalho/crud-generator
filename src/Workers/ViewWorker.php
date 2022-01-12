@@ -24,9 +24,9 @@ class ViewWorker
     private $utilsHelper;
 
     /**
-     * @var bool
+     * @var string
      */
-    private $isWithoutStyle;
+    private $style;
 
     /**
      * @var string
@@ -49,12 +49,12 @@ class ViewWorker
      * @param string $modelName
      * @param string $lang
      * @param array $fieldList
-     * @param bool $isWithoutStyle
+     * @param string $style
      * @return string
      */
-    public function build(string $modelName, string $lang, array $fieldList, bool $isWithoutStyle): string
+    public function build(string $modelName, string $lang, array $fieldList, string $style): string
     {
-        $this->isWithoutStyle = $isWithoutStyle;
+        $this->style = $style;
         $this->modelName = $modelName;
         $this->fieldList = $fieldList;
 
@@ -309,12 +309,12 @@ class ViewWorker
      */
     private function appendStyle(): string
     {
-        if ($this->isWithoutStyle) {
+        if ($this->style === "none") {
             return "";
         }
 
         /** @noinspection HtmlUnknownTarget */
-        return "<link href=\"{{asset('css/crudgenerator.css')}}\" rel='stylesheet'>\n\n";
+        return "<link href=\"{{asset('css/crudgenerator/$this->style.css')}}\" rel='stylesheet'>\n\n";
     }
 
     /**
