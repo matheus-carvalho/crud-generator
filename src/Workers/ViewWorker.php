@@ -71,6 +71,7 @@ class ViewWorker
 
         $this->buildIndex($fullPath);
         $this->buildCreate($fullPath);
+        $this->buildPagination();
 
         return $viewFolder;
     }
@@ -80,7 +81,7 @@ class ViewWorker
      * @param string $fullPath
      * @return void
      */
-    public function buildIndex(string $fullPath)
+    private function buildIndex(string $fullPath)
     {
         $content = $this->appendStyle();
         $content .= $this->openIndexContainer();
@@ -178,7 +179,7 @@ class ViewWorker
         $content .= "\n\t\t\t\t</tr>";
         $content .= "\n\t\t\t</thead>";
         $content .= "\n\t\t\t<tbody>";
-        $content .= "\n\t\t\t@foreach (\$items as \$item)";
+        $content .= "\n\t\t\t@forelse (\$items as \$item)";
         $content .= "\n\t\t\t\t<tr>";
         foreach ($modelItems as $modelItem) {
             if (strpos($modelItem, '_id') !== false) {
@@ -202,9 +203,11 @@ class ViewWorker
         $content .= "\n\t\t\t\t\t\t</div>";
         $content .= "\n\t\t\t\t\t</td>";
         $content .= "\n\t\t\t\t</tr>";
-        $content .= "\n\t\t\t@endforeach";
+        $content .= "\n\t\t\t@empty <tr> <td>No $this->modelName found!</td> </tr>";
+        $content .= "\n\t\t\t@endforelse";
         $content .= "\n\t\t\t</tbody>";
         $content .= "\n\t\t</table>";
+        $content .= "\n\t\t{{\$items->links('pagination.crudgenerator')}}";
         $content .= "\n\t</div>";
 
         return $content;
@@ -215,7 +218,7 @@ class ViewWorker
      * @param string $fullPath
      * @return void
      */
-    public function buildCreate(string $fullPath)
+    private function buildCreate(string $fullPath)
     {
         $txtCreate = $this->translated['create'];
 
@@ -324,7 +327,7 @@ class ViewWorker
      * @param string $title
      * @return string
      */
-    public function getInputType(string $field, string $modelItem, string $title): string
+    private function getInputType(string $field, string $modelItem, string $title): string
     {
         $field = $this->utilsHelper->getStringBetween($field, ">", "(");
 
@@ -392,5 +395,69 @@ class ViewWorker
 
                 return str_replace("INPUT_HTML", $inputHtml, $defaultHtml);
         }
+    }
+
+    /**
+     * Builds the crudgenerator (pagination) view
+     * @return void
+     */
+    private function buildPagination()
+    {
+        /** @noinspection PhpUndefinedFunctionInspection */
+        $paginationFolder = resource_path('views') . "/pagination/";
+        $paginationFile = $paginationFolder . "crudgenerator.blade.php";
+
+        if (file_exists($paginationFile)) {
+            return;
+        }
+
+        mkdir($paginationFolder);
+        $content = $this->appendPagination();
+
+        file_put_contents($paginationFile, $content);
+    }
+
+    /**
+     * Appends the pagination content
+     * @return string
+     */
+    private function appendPagination(): string
+    {
+        $txtPrevious = $this->translated['pagination']['previous'];
+        $txtNext = $this->translated['pagination']['next'];
+        $txtInfo = $this->translated['pagination']['info'];
+
+        $content = "@if (\$paginator->hasPages())";
+        $content .= "\n\t<ul class=\"pager w-100\">";
+        $content .= "\n\t\t@if (\$paginator->onFirstPage())";
+        $content .= "\n\t\t\t<li class=\"disabled\"><span>← $txtPrevious</span></li>";
+        $content .= "\n\t\t@else";
+        $content .= "\n\t\t\t<li><a href=\"{{ \$paginator->previousPageUrl() }}\" rel=\"prev\">← $txtPrevious</a></li>";
+        $content .= "\n\t\t@endif";
+        $content .= "\n\n\t\t@foreach (\$elements as \$element)";
+        $content .= "\n\t\t\t@if (is_string(\$element))";
+        $content .= "\n\t\t\t\t<li class=\"disabled\"><span>{{ \$element }}</span></li>";
+        $content .= "\n\t\t\t@endif";
+        $content .= "\n\n\t\t\t@if (is_array(\$element))";
+        $content .= "\n\t\t\t\t@foreach (\$element as \$page => \$url)";
+        $content .= "\n\t\t\t\t\t@if (\$page == \$paginator->currentPage())";
+        $content .= "\n\t\t\t\t\t\t<li class=\"active my-active\"><span>{{ \$page }}</span></li>";
+        $content .= "\n\t\t\t\t\t@else";
+        /** @noinspection HtmlUnknownTarget */
+        $content .= "\n\t\t\t\t\t\t<li><a href=\"{{ \$url }}\">{{ \$page }}</a></li>";
+        $content .= "\n\t\t\t\t\t@endif";
+        $content .= "\n\t\t\t\t@endforeach";
+        $content .= "\n\t\t\t@endif";
+        $content .= "\n\t\t@endforeach";
+        $content .= "\n\n\t\t@if (\$paginator->hasMorePages())";
+        $content .= "\n\t\t\t<li><a href=\"{{ \$paginator->nextPageUrl() }}\" rel=\"next\">$txtNext →</a></li>";
+        $content .= "\n\t\t@else";
+        $content .= "\n\t\t\t<li class=\"disabled\"><span>$txtNext →</span></li>";
+        $content .= "\n\t\t@endif";
+        $content .= "\n\t</ul>";
+        $content .= "\n\t<small class=\"pager-info\">$txtInfo</small>";
+        $content .= "\n@endif";
+
+        return $content;
     }
 }

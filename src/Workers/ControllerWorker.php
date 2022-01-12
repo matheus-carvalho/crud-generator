@@ -37,6 +37,11 @@ class ControllerWorker
      */
     private $controllerName;
 
+    /**
+     * @var int
+     */
+    private $paginationPerPage;
+
     public function __construct()
     {
         $this->utilsHelper = new Utils();
@@ -50,13 +55,15 @@ class ControllerWorker
      * @param array $fieldList
      * @param string $viewFolder
      * @param string $lang
+     * @param int $paginationPerPage
      * @return void
      */
-    public function build(string $controllerName, string $modelName, array $fieldList, string $viewFolder, string $lang)
+    public function build(string $controllerName, string $modelName, array $fieldList, string $viewFolder, string $lang, int $paginationPerPage)
     {
         $this->modelName = $modelName;
         $this->viewFolder = $viewFolder;
         $this->controllerName = $controllerName;
+        $this->paginationPerPage = $paginationPerPage;
         $this->translated = $this->translator->getTranslated($lang);
 
         /** @noinspection PhpUndefinedFunctionInspection */
@@ -128,7 +135,8 @@ class ControllerWorker
     {
         $content = "\tpublic function index(): View";
         $content .= "\n\t{";
-        $content .= "\n\t\t\$items = $this->modelName::all();";
+        $content .= "\n\t\t\$perPage = $this->paginationPerPage;";
+        $content .= "\n\t\t\$items = $this->modelName::paginate(\$perPage);";
         $content .= "\n\t\treturn view('$this->viewFolder.index', compact('items'));";
         $content .= "\n\t}";
 

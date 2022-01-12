@@ -33,6 +33,11 @@ class Translator
                 'request_messages' => [
                     'required' => 'The :attribute field is required.',
                     'min' => 'You must select the :attribute.'
+                ],
+                'pagination' => [
+                    'previous' => 'Previous',
+                    'next' => 'Next',
+                    'info' => 'Showing {{$paginator->firstItem()}} to {{$paginator->lastItem()}} of {{$paginator->total()}} results'
                 ]
             ],
             'br' => [
@@ -56,6 +61,11 @@ class Translator
                 'request_messages' => [
                     'required' => 'Você deve preencher o campo :attribute.',
                     'min' => 'Você deve selecionar um item no campo :attribute.'
+                ],
+                'pagination' => [
+                    'previous' => 'Próxima',
+                    'next' => 'Anterior',
+                    'info' => 'Mostrando de {{$paginator->firstItem()}} a {{$paginator->lastItem()}} de {{$paginator->total()}} registros'
                 ]
             ]
         ][$lang];

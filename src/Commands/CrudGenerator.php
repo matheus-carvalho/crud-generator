@@ -1,4 +1,5 @@
 <?php
+/** @noinspection PhpUndefinedFunctionInspection */
 /** @noinspection PhpUnused */
 /** @noinspection PhpUndefinedNamespaceInspection */
 /** @noinspection PhpUndefinedClassInspection */
@@ -127,7 +128,8 @@ class CrudGenerator extends Command
             'name' => $controllerName
         ]);
 
-        $this->controllerWorker->build($controllerName, $modelName, $fieldList, $viewFolder, $language);
+        $paginationPerPage = $this->definePaginationPerPage();
+        $this->controllerWorker->build($controllerName, $modelName, $fieldList, $viewFolder, $language, $paginationPerPage);
         $this->routeWorker->build($controllerName, $viewFolder, $modelName);
         $this->info('Routes created successfully.');
     }
@@ -140,7 +142,6 @@ class CrudGenerator extends Command
     {
         $parameterLanguage = $this->option('language');
 
-        /** @noinspection PhpUndefinedFunctionInspection */
         return [
             'br' => 'br',
             'en' => 'en'
