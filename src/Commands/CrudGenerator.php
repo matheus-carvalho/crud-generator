@@ -31,8 +31,8 @@ class CrudGenerator extends Command
      * @var string
      */
     protected $signature = 'generate:crud 
-                                {migration : Full name of the migration}
-                                {--resource-name= : The resource name (camelCase) which will be used to name all files}
+                                {table : Table name }
+                                {--resource= : The resource name (camelCase) which will be used to name all files}
                                 {--style= : Specifies the style | [default, none] | Default = default}} 
                                 {--language= : Specifies the language | [br, en] | Default = en}';
 
