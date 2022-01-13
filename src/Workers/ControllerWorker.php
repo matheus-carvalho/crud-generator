@@ -52,6 +52,11 @@ class ControllerWorker
      */
     private $compactContent;
 
+    /**
+     * @var string
+     */
+    private $indexRoute;
+
     public function __construct()
     {
         $this->translator = new Translator();
@@ -68,6 +73,7 @@ class ControllerWorker
         $this->controllerName = $this->state->getControllerName();
         $this->translated = $this->state->getTranslated();
         $this->requestName = $this->state->getRequestName();
+        $this->indexRoute = $this->state->getRoutes()['index'];
 
         /** @noinspection PhpUndefinedFunctionInspection */
         $filePath = app_path('Http/Controllers/') . $this->controllerName . ".php";
@@ -205,7 +211,7 @@ class ControllerWorker
 
         $content  .= "\n\t\t\treturn redirect()->back()->with('error', '$errorMessage');";
         $content  .= "\n\t\t}";
-        $content  .= "\n\n\t\treturn redirect()->route('index$this->modelName')->with('message', '$successMessage');";
+        $content  .= "\n\n\t\treturn redirect()->route('$this->indexRoute')->with('message', '$successMessage');";
         $content  .= "\n\t}";
 
         return $content;
@@ -225,7 +231,7 @@ class ControllerWorker
         $content  .= "\n\t\tif (!\$update) {";
         $content  .= "\n\t\t\treturn redirect()->back();";
         $content  .= "\n\t\t}";
-        $content  .= "\n\n\t\treturn redirect()->route('index$this->modelName');";
+        $content  .= "\n\n\t\treturn redirect()->route('$this->indexRoute');";
         $content  .= "\n\t}";
 
         return $content;
@@ -254,7 +260,7 @@ class ControllerWorker
 
         $content  .= "\n\t\t\treturn redirect()->back()->with('error', '$errorMessage');";
         $content  .= "\n\t\t}";
-        $content  .= "\n\n\t\treturn redirect()->route('index$this->modelName')->with('message', '$successMessage');";
+        $content  .= "\n\n\t\treturn redirect()->route('$this->indexRoute')->with('message', '$successMessage');";
         $content  .= "\n\t}";
 
         return $content;
