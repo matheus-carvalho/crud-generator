@@ -1,181 +1,184 @@
 # CRUD GENERATOR for Laravel
-Needs a simple and fast CRUD system?
-Crud Generator provides Model, Controller, Routes and Views based on given Migration.
+Crud Generator provides a complete experience of develop an entire CRUD only writing the migration file.
 
-## Installing via Composer
+### Installing via Composer
 
 ```bash
 composer require matheus-carvalho/crud-generator
 ```
 
-## Add the provider to config/app.php providers array
-
-```php
-'providers' => [
-...
-/*
- * Package Service Providers...
- */
-Matheuscarvalho\Crudgenerator\CrudGeneratorServiceProvider::class,
-...
-],
-```
-
-## Publish the CSS and Config folder
+### Publish the CSS and Config folder
 ```bash
-php artisan config:cache
 php artisan vendor:publish
 ```
 
 ## Usage
-
-1. Create your migration and fill with desired fields.
-
-2. Copy the name of generated migration.
-
-3. Open a cmd on project root and type:
+1. Create your migration and fill up the fields.
+2. Open a cmd on project root and type:
 ```bash
-php artisan generate:crud migration_name --model-name model_name
+php artisan generate:crud table_name --resource ResourceName
 ```
 
-## Full Example
-
+# Simple example
 1. Creating the migration.
 ```bash 
-php artisan make:migration create_products_table
+php artisan make:migration create_categories_table
 ```
 
 2. Filling up the migration.
 ```php
 public function up()
-    {
-        Schema::create('products', function (Blueprint $table) {
-            $table->bigIncrements('id');
-            $table->string('name')->nullable();
-            $table->double('price')->nullable();
-            $table->integer('quantity')->nullable();
-            $table->unsignedInteger('category_id')->nullable();
-            $table->date('date')->nullable();
-            $table->dateTime('date_time')->nullable();
-            $table->time('time')->nullable();
-            $table->unsignedInteger('fabrication_country_id')->nullable();
-            $table->timestamps();
-        });
-    }
+{
+    Schema::create('categories', function (Blueprint $table) {
+        $table->id();
 
-    /**
-     * Reverse the migrations.
-     *
-     * @return void
-     */
-    public function down()
-    {
-        Schema::dropIfExists('products');
-    }
+        $table->string('name');
+        $table->text('description')->nullable();
+
+        $table->timestamps();
+    });
+}
 ```
 
 3. Generating the CRUD.
 ```bash
-php artisan generate:crud 2019_06_19_024333_create_products_table.php --model-name Product
+php artisan generate:crud categories --resource Category
 ```
 
-## Important notes
+## Available column types example
+1. Creating the migration.
+```bash 
+php artisan make:migration create_awesome_products_table
+```
 
-- Please create all your foreign keys following the pattern on example:
- 
-    `$table->unsignedInteger('fabrication_country_id')->nullable();`
-    
-The crud-generator uses the 'unsignedInteger' type to search foreign keys in migrations and uses the snake_case pattern to create Model, Controller and Views.
+2. Filling up the migration.
+```php
+public function up()
+{
+    Schema::create('awesome_products', function (Blueprint $table) {
+        $table->id();
+
+        $table->string('name');
+        $table->text('description');
+        $table->double('price');
+        $table->integer('quantity')->nullable();
+        $table->dateTime('best_before')->nullable();
+        $table->date('production_date')->nullable();
+        $table->time('production_time')->nullable();
+        $table->boolean('is_active');
+        $table->foreignId('category_id')->constrained()->cascadeOnDelete();
+
+        $table->timestamps();
+    });
+}
+```
+
+3. Generating the CRUD.
+```bash
+php artisan generate:crud awesome_products --resource AwesomeProduct
+```
+
+### Tips
+
+- The combination of `foreignId()` and `constrained()` methods is essential to make foreign keys work.
+- The `cascadeOnDelete()` method is optional.
+- Take note on snake_case naming pattern.
 
 ## Options
 
-| Option          | params     | Description                                                                                                                                                           |
-|-----------------|------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| --model-name    | string     | The name used by crud-generator to create the files                                                                                                                   |
-| --without-style | none       | A boolean option which disable the default style. By default, the generated views comes with a simple css (that uses bootstrap classes) to style basically the pages. |
-| --language      | [ br, en ] | Specifies the language of files generated. Default = en.                                                                                                              |
+| Option     | params          | Description                                                      |
+|------------|-----------------|------------------------------------------------------------------|
+| table      | string          | Table name (snake_case).                                         |
+| --resource | string          | Resource name (PascalCase) which will be used to name all files. |
+| --style    | [default, none] | Specifies the style. Default = default.                          |
+| --language | [br, en]        | Specifies the language. Default = en.                            |
 
 ## Configs
 
-The package comes with a file which allows you to override some default configurations.
-After you had published the css and the config folders, you can navigate to config/crudconfig.php and edit some configs, they are:
+After you had published the css and config folders, you can navigate to config/crudgenerator.php and edit some configs, they are:
 
-| Config   | Default | Description                                                                                                                        |
-|----------|---------|------------------------------------------------------------------------------------------------------------------------------------|
-| language | en      | Specifies the language of all texts inside the files generated. Accepts only 'br' for 'Português Brasileiro' or 'en' for 'English' |
+| Config              | Default | Description                                                                                                      |
+|---------------------|---------|------------------------------------------------------------------------------------------------------------------|
+| language            | en      | Specifies the language of texts inside the files. Accepts 'br' for 'Português brasileiro' or 'en' for 'English'. |
+| style               | default | Specifies the style of views. Accepts 'default' for default css file or 'none' for raw html.                     |
+| pagination_per_page | 5       | Specifies the number of elements should be rendered on each page at index's table. Accepts any positive value.   |
 
-- After you edit any config inside crudconfig.php, please be sure of run the 
-```bash 
-php artisan config:cache
-``` 
+- After you edit any config, please be sure of run the `php artisan config:cache`
 command to apply your changes.
 
 ## Output
 
-After running the `php artisan generate:crud 2019_06_19_024333_create_products_table.php --model-name Product` 
-command, you'll be able to find these files in your project:
+After running the `php artisan generate:crud awesome_products --resource AwesomeProduct` command, you'll be able to find these files in your project:
 
 <details>
-<summary> App\Http\Controllers\ProductController.php </summary>
+<summary> App\Http\Controllers\AwesomeProductController.php </summary>
 
 ```php
 <?php
 
 namespace App\Http\Controllers;
 
-use App\Models\Product;
+use App\Http\Requests\AwesomeProductRequest;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\View\View;
+use App\Models\AwesomeProduct;
 use App\Models\Category;
-use App\Models\FabricationCountry;
 
-class ProductController extends Controller
+class AwesomeProductController extends Controller
 {
-	public function index() { 
-		$items = Product::all();
-		return view('product.index', compact('items'));
+	public function index(): View
+	{
+		$perPage = 5;
+		$items = AwesomeProduct::paginate($perPage);
+		return view('awesome_product.index', compact('items'));
 	}
 
-	public function create() { 
-		$categorys = Category::all();
-		$fabricationCountrys = FabricationCountry::all();
-		return view('product.create', compact('categorys', 'fabricationCountrys'));
+	public function create(): View
+	{
+		$categoryList = Category::all();
+		return view('awesome_product.create', compact('categoryList'));
 	}
 
-	public function edit($id) { 
-		$item = Product::find($id);
-		$categorys = Category::all();
-		$fabricationCountrys = FabricationCountry::all();
-		return view('product.create', compact('categorys', 'fabricationCountrys', 'item'));
+	public function edit($id): View
+	{
+		$item = AwesomeProduct::find($id);
+		$categoryList = Category::all();
+		return view('awesome_product.create', compact('categoryList', 'item'));
 	}
 
-	public function store() { 
-		$data = request()->all();
-		$insert = Product::create($data);
-		if ($insert) {
-			return redirect()->route('indexProduct')->with('message', 'Product inserted successfully');
-		} else {
-			return redirect()->back()->with('error', 'Insertion error');
+	public function store(AwesomeProductRequest $request): RedirectResponse
+	{
+		$data = $request->validated();
+		$insert = AwesomeProduct::create($data);
+		if (!$insert) {
+			return redirect()->back()->with('error', 'Error inserting AwesomeProduct');
 		}
+
+		return redirect()->route('indexAwesomeProduct')->with('message', 'AwesomeProduct inserted successfully');
 	}
 
-	public function update($id) { 
-		$data = request()->all();
-		$item = Product::find($id);
+	public function update(AwesomeProductRequest $request, int $id): RedirectResponse
+	{
+		$data = $request->validated();
+
+		$item = AwesomeProduct::find($id);
 		$update = $item->update($data);
-		if ($update) {
-			return redirect()->route('indexProduct');
-		} else {
+		if (!$update) {
 			return redirect()->back();
 		}
+
+		return redirect()->route('indexAwesomeProduct');
 	}
 
-	public function destroy($id) { 
-		$item = Product::find($id);
+	public function destroy(int $id): RedirectResponse
+	{
+		$item = AwesomeProduct::find($id);
 		$delete = $item->delete();
-		if ($delete) {
-			return redirect()->route('indexProduct')->with('message', 'Product deleted successfully');
-		} else {
-			return redirect()->back()->with('error', 'Deletion error');
+		if (!$delete) {
+			return redirect()->back()->with('error', 'Error deleting AwesomeProduct');
 		}
+
+		return redirect()->route('indexAwesomeProduct')->with('message', 'AwesomeProduct deleted successfully');
 	}
 }
 ```
@@ -183,7 +186,7 @@ class ProductController extends Controller
 </details>
 
 <details>
-<summary> App\Models\Product.php </summary>
+<summary> App\Models\AwesomeProduct.php </summary>
 
 ```php
 <?php
@@ -191,28 +194,102 @@ class ProductController extends Controller
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-class Product extends Model
+/**
+ * @method static find($id)
+ * @method static create(array $data)
+ * @method static paginate(int $perPage)
+ */
+class AwesomeProduct extends Model
 {
-	protected $table = 'products';
+	protected $table = 'awesome_products';
 
 	protected $fillable = [
 		'name',
+		'description',
 		'price',
 		'quantity',
-		'category_id',
-		'date',
-		'date_time',
-		'time',
-		'fabrication_country_id',
+		'best_before',
+		'production_date',
+		'production_time',
+		'is_active',
+		'category_id'
 	];
 
-	public function Category(){
+	public static $notNullableBooleans = [
+		'is_active'
+	];
+
+	public function Category(): BelongsTo
+	{
 		return $this->belongsTo('App\Models\Category', 'category_id', 'id');
 	}
+}
+```
 
-	public function FabricationCountry(){
-		return $this->belongsTo('App\Models\FabricationCountry', 'fabrication_country_id', 'id');
+</details>
+
+<details>
+<summary> App\Http\Requests\AwesomeProductRequest.php </summary>
+
+```php
+<?php
+
+namespace App\Http\Requests;
+
+use App\Models\AwesomeProduct;
+use Illuminate\Foundation\Http\FormRequest;
+
+class AwesomeProductRequest extends FormRequest
+{
+	/**
+	 * Determine if the user is authorized to make this request.
+	 *
+	 * @return bool
+	 */
+	public function authorize(): bool
+	{
+		return true;
+	}
+
+	public function validationData(): array
+	{
+		$data = parent::validationData();
+
+		foreach (AwesomeProduct::$notNullableBooleans as $notNullableBoolean) {
+			$data[$notNullableBoolean] = $data[$notNullableBoolean] ?? false;
+		}
+
+		return $data;
+	}
+
+	/**
+	 * Get the validation rules that apply to the request.
+	 *
+	 * @return array
+	 */
+	public function rules(): array
+	{
+		return [
+			'name' => 'required',
+			'description' => 'required',
+			'price' => 'required',
+			'is_active' => 'required',
+			'quantity' => 'nullable',
+			'best_before' => 'nullable',
+			'production_date' => 'nullable',
+			'production_time' => 'nullable',
+			'category_id' => 'required|integer|min:1'
+		];
+	}
+
+	public function messages(): array
+	{
+		return [
+			'required' => 'The :attribute field is required.',
+			'min' => 'You must select the :attribute.'
+		];
 	}
 }
 ```
@@ -224,92 +301,120 @@ class Product extends Model
 
 ```php
 [...]
-
-Route::get('/product', 'ProductController@index')->name('indexProduct');
-Route::get('/product/create', 'ProductController@create')->name('createProduct');
-Route::get('/product/edit/{id}', 'ProductController@edit')->name('editProduct');
-Route::post('/product/store', 'ProductController@store')->name('storeProduct');
-Route::put('/product/update/{id}', 'ProductController@update')->name('updateProduct');
-Route::delete('/product/delete/{id}', 'ProductController@destroy')->name('deleteProduct');
+use App\Http\Controllers\AwesomeProductController;
+[...]
+Route::get('/awesome-products', [AwesomeProductController::class, 'index'])->name('awesome_products.index');
+Route::get('/awesome-products/create', [AwesomeProductController::class, 'create'])->name('awesome_products.create');
+Route::get('/awesome-products/edit/{id}', [AwesomeProductController::class, 'edit'])->name('awesome_products.edit');
+Route::post('/awesome-products', [AwesomeProductController::class, 'store'])->name('awesome_products.store');
+Route::put('/awesome-products/{id}', [AwesomeProductController::class, 'update'])->name('awesome_products.update');
+Route::delete('/awesome-products/{id}', [AwesomeProductController::class, 'destroy'])->name('awesome_products.delete');
 ```
 
 </details>
 
-
 <details>
-<summary> resources\views\product\create.blade.php </summary>
+<summary> resources\views\awesome_product\create.blade.php </summary>
 
 ```php
-<link href="{{asset('css/crudgenerator.css')}}" rel='stylesheet'>
+<link href="{{asset('css/crudgenerator/default.css')}}" rel='stylesheet'>
 
-<title>Create Product</title>
+<title>Create AwesomeProduct</title>
 
-<div>
-	<div>
-		<ul class='breadcrumb'>
-			<li><a href="{{ route('indexProduct') }}">Product</a></li>
-			<li class='active'>Create Product</li>
+<div class="container">
+	<div class="mt-20">
+		<ul class="breadcrumb">
+			<li><a href="{{ route('awesome_products.index') }}">AwesomeProduct</a></li>
+			<li class='active'>Create AwesomeProduct</li>
 		</ul>
 	</div>
-</div>
-
-<div>
-	<form class='container' method='post' 
+	<form method="post" 
 		@if(isset($item))
-			action="{{ route('updateProduct', $item->id) }}">
+			action="{{ route('awesome_products.update', $item->id) }}">
 			{!! method_field('PUT') !!}
 		@else
-			action="{{ route('storeProduct') }}">
+			action="{{ route('awesome_products.store') }}">
 		@endif
 		{!! csrf_field() !!}
-		<div>Name</div>
-		<div>
-			<input type='text' name='name' value="{{isset($item) ? $item->name : old('name')}}">
+		<div class="form-group">
+			<label for="name">Name</label>
+			<input class="form-control" id="name" name="name" value="{{isset($item) ? $item->name : old('name')}}" type="text">
+			@error('name')
+				<div class="alert alert-danger">{{ $message }}</div>
+			@enderror
 		</div>
-		<div>Price</div>
-		<div>
-			<input type='number' step='0.01' name='price' value="{{isset($item) ? $item->price : old('price')}}">
+		<div class="form-group">
+			<label for="description">Description</label>
+			<textarea class="form-control" id="description" name="description">{{isset($item) ? $item->description : old('description')}}</textarea>
+			@error('description')
+				<div class="alert alert-danger">{{ $message }}</div>
+			@enderror
 		</div>
-		<div>Quantity</div>
-		<div>
-			<input type='number' name='quantity' value="{{isset($item) ? $item->quantity : old('quantity')}}">
+		<div class="form-group">
+			<label for="price">Price</label>
+			<input class="form-control" id="price" name="price" value="{{isset($item) ? $item->price : old('price')}}" type="number" step="0.01">
+			@error('price')
+				<div class="alert alert-danger">{{ $message }}</div>
+			@enderror
 		</div>
-		<div>Category</div>
-		<div>
-			<select name='category_id'>
-				<option value='0'>Select the Category</option>
-				@foreach($categorys as $fk)
-					<option value="{{$fk->id}}" @if(isset($item) && $fk->id == $item->category_id) selected @endif>
-						{{$fk->description}}
+		<div class="form-group">
+			<label for="quantity">Quantity</label>
+			<input class="form-control" id="quantity" name="quantity" value="{{isset($item) ? $item->quantity : old('quantity')}}" type="number">
+			@error('quantity')
+				<div class="alert alert-danger">{{ $message }}</div>
+			@enderror
+		</div>
+		<div class="form-group">
+			<label for="best_before">Best before</label>
+			<input class="form-control" id="best_before" name="best_before" value="{{isset($item) ? str_replace(' ', 'T', $item->best_before) : old('best_before')}}" type="datetime-local">
+			@error('best_before')
+				<div class="alert alert-danger">{{ $message }}</div>
+			@enderror
+		</div>
+		<div class="form-group">
+			<label for="production_date">Production date</label>
+			<input class="form-control" id="production_date" name="production_date" value="{{isset($item) ? $item->production_date : old('production_date')}}" type="date">
+			@error('production_date')
+				<div class="alert alert-danger">{{ $message }}</div>
+			@enderror
+		</div>
+		<div class="form-group">
+			<label for="production_time">Production time</label>
+			<input class="form-control" id="production_time" name="production_time" value="{{isset($item) ? $item->production_time : old('production_time')}}" type="time">
+			@error('production_time')
+				<div class="alert alert-danger">{{ $message }}</div>
+			@enderror
+		</div>
+		<div class="form-group">
+			<label for="is_active">Is active</label>
+			<input class="form-check-input" id="is_active" name="is_active" type="checkbox" value="true"
+				@if(isset($item) && $item->is_active)
+					checked
+				@endif
+			>
+			@error('is_active')
+				<div class="alert alert-danger">{{ $message }}</div>
+			@enderror
+		</div>
+		<div class="form-group">
+			<label for="category_id">Category</label>
+			
+			<select name="category_id" id="category_id" class="form-control">
+				<option value="0">Select the Category</option>
+				@foreach($categoryList as $category)
+					<option value="{{$category->id}}"
+						@if((isset($item) && $category->id == $item->category_id)||$category->id == old('category_id')) selected @endif
+					>
+						{{$category->name}}
 					</option>
 				@endforeach
 			</select>
-		</div>
-		<div>Date</div>
-		<div>
-			<input type='date' name='date' value="{{isset($item) ? $item->date : old('date')}}">
-		</div>
-		<div>Date time</div>
-		<div>
-			<input type='datetime-local' name='date_time' value="{{isset($item) ? str_replace(' ', 'T', $item->date_time) : old('date_time')}}">
-		</div>
-		<div>Time</div>
-		<div>
-			<input type='time' name='time' value="{{isset($item) ? $item->time : old('time')}}">
-		</div>
-		<div>Fabrication country</div>
-		<div>
-			<select name='fabrication_country_id'>
-				<option value='0'>Select the Fabrication Country</option>
-				@foreach($fabricationCountrys as $fk)
-					<option value="{{$fk->id}}" @if(isset($item) && $fk->id == $item->fabrication_country_id) selected @endif>
-						{{$fk->description}}
-					</option>
-				@endforeach
-			</select>
+			@error('category_id')
+				<div class="alert alert-danger">{{ $message }}</div>
+			@enderror
 		</div>
 
-		<button class='btn btn-success'>Save</button>
+		<button class="btn btn-success">Save</button>
 	</form>
 </div>
 ```
@@ -317,65 +422,118 @@ Route::delete('/product/delete/{id}', 'ProductController@destroy')->name('delete
 </details>
 
 <details>
-<summary> resources\views\product\index.blade.php </summary>
+<summary> resources\views\awesome_product\index.blade.php </summary>
 
 ```php
-<link href="{{asset('css/crudgenerator.css')}}" rel='stylesheet'>
+<link href="{{asset('css/crudgenerator/default.css')}}" rel='stylesheet'>
 
-<title>Product</title>
+<title>AwesomeProduct</title>
 
-<div class='container'>
-	<a href="{{ route('createProduct') }}" class='btn btn-success'> New</a>
+<div class="container">
+	<div class="row justify-content-around align-items-center mt-20">
+		<div>
+			<p class="list-header">AwesomeProduct List</p>
+		</div>
+		<div>
+			<a href="{{route('awesome_products.create')}}" class="btn btn-success">New &#10004;</a>
+		</div>
+	</div>
+	<div class="row">
 
 	@if (session('message'))
-		<div class='alert alert-success'>
+		<div class='alert alert-success w-100'>
 			{{ session('message') }}
 		</div>
 	@endif
+	</div>
 
-	<table class='table'>
-		<thead>
-			<tr>
-				<th>Name</th>
-				<th>Price</th>
-				<th>Quantity</th>
-				<th>Category</th>
-				<th>Date</th>
-				<th>Date time</th>
-				<th>Time</th>
-				<th>Fabrication country</th>
-				<th>Ações</th>
-			</tr>
-		</thead>
-		<tbody>
-			@foreach ($items as $item)
-			<tr>
-				<td>{{$item->name}}</td>
-				<td>{{$item->price}}</td>
-				<td>{{$item->quantity}}</td>
-				<td>{{$item->Category->description}}</td>
-				<td>{{$item->date}}</td>
-				<td>{{$item->date_time}}</td>
-				<td>{{$item->time}}</td>
-				<td>{{$item->FabricationCountry->description}}</td>
-				<td>
-					<a style='float: left;' href="{{route('editProduct', $item->id)}}" class='btn btn-warning' title='Edit'>E</a>
-					<form title='Delete' method='post' action="{{route('deleteProduct', $item->id)}}">
-						{!! method_field('DELETE') !!} {!! csrf_field() !!}
-						<button class='btn btn-danger'> X </button>
-					</form>
-				</td>
-			</tr>
-			@endforeach
-		</tbody>
-	</table>
+	<div class="row overflow-auto">
+		<table class="list-table table-stripped mt-20 w-100">
+			<thead>
+				<tr>
+					<th>Name</th>
+					<th>Description</th>
+					<th>Price</th>
+					<th>Quantity</th>
+					<th>Best before</th>
+					<th>Production date</th>
+					<th>Production time</th>
+					<th>Is active</th>
+					<th>Category</th>
+					<th>Actions</th>
+				</tr>
+			</thead>
+			<tbody>
+			@forelse ($items as $item)
+				<tr>
+					<td>{{$item->name}}</td>
+					<td>{{$item->description}}</td>
+					<td>{{$item->price}}</td>
+					<td>{{$item->quantity}}</td>
+					<td>{{$item->best_before}}</td>
+					<td>{{$item->production_date}}</td>
+					<td>{{$item->production_time}}</td>
+					<td>{{$item->is_active}}</td>
+					<td>{{$item->Category->name}}</td>
+					<td class="row justify-content-start align-items-center">
+						<div class="action-button">
+							<a href="{{route('awesome_products.edit', $item->id)}}" class="btn btn-warning" title="Edit"> &#9998; </a>
+						</div>
+						<div class="action-button">
+							<form title="Delete" method="post" action="{{route('awesome_products.delete', $item->id)}}">
+								{!! method_field('DELETE') !!} {!! csrf_field() !!}
+								<button class="btn btn-danger"> &times; </button>
+							</form>
+						</div>
+					</td>
+				</tr>
+			@empty <tr> <td colspan="100%">No AwesomeProduct found!</td> </tr>
+			@endforelse
+			</tbody>
+		</table>
+		{{$items->links('pagination.crudgenerator')}}
+	</div>
 </div>
 ```
 
 </details>
 
-## Upcoming updates
+<details>
+<summary> resources\views\pagination\crudgenerator.blade.php </summary>
 
-| Option       | params | Description                                                           |
-|--------------|--------|-----------------------------------------------------------------------|
-| --pagination | none   | A boolean option which indicates the index view must have pagination. |
+```php
+@if ($paginator->hasPages())
+	<ul class="pager w-100">
+		@if ($paginator->onFirstPage())
+			<li class="disabled"><span>← Previous</span></li>
+		@else
+			<li><a href="{{ $paginator->previousPageUrl() }}" rel="prev">← Previous</a></li>
+		@endif
+
+		@foreach ($elements as $element)
+			@if (is_string($element))
+				<li class="disabled"><span>{{ $element }}</span></li>
+			@endif
+
+			@if (is_array($element))
+				@foreach ($element as $page => $url)
+					@if ($page == $paginator->currentPage())
+						<li class="active my-active"><span>{{ $page }}</span></li>
+					@else
+						<li><a href="{{ $url }}">{{ $page }}</a></li>
+					@endif
+				@endforeach
+			@endif
+		@endforeach
+
+		@if ($paginator->hasMorePages())
+			<li><a href="{{ $paginator->nextPageUrl() }}" rel="next">Next →</a></li>
+		@else
+			<li class="disabled"><span>Next →</span></li>
+		@endif
+	</ul>
+	<small class="pager-info">Showing {{$paginator->firstItem()}} to {{$paginator->lastItem()}} of {{$paginator->total()}} results</small>
+@endif
+```
+
+</details>
