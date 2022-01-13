@@ -72,6 +72,7 @@ class ModelWorker
         $content .= "\n\n/**";
         $content .= "\n * @method static find(\$id)";
         $content .= "\n * @method static create(array \$data)";
+        $content .= "\n * @method static paginate(int \$perPage)";
         $content .= "\n */";
         $content .= "\nclass $modelName extends Model\n{\n";
 

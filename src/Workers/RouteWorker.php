@@ -3,6 +3,7 @@
 namespace Matheuscarvalho\Crudgenerator\Workers;
 
 use Matheuscarvalho\Crudgenerator\Helpers\State;
+use Matheuscarvalho\Crudgenerator\Helpers\Utils;
 
 class RouteWorker
 {
@@ -16,9 +17,15 @@ class RouteWorker
      */
     private $state;
 
+    /**
+     * @var Utils
+     */
+    private $utilsHelper;
+
     public function __construct()
     {
         $this->state = State::getInstance();
+        $this->utilsHelper = new Utils();
     }
 
     /**
@@ -88,11 +95,10 @@ class RouteWorker
      */
     private function buildRoute(string $verb, string $method, bool $appendsId = false): string
     {
-        $viewFolder = $this->state->getViewFolder();
-        $modelName = $this->state->getModelName();
+        $baseRoute = $this->state->getMigration();
 
-        $routeName = $verb === "delete" ? $verb . $modelName : $method . $modelName;
-        $routePath = "/$viewFolder";
+        $routeName = $verb === "delete" ? "$baseRoute.$verb" : "$baseRoute.$method";
+        $routePath = "/" . $this->utilsHelper->snakeToKebab($baseRoute);
 
         if ($method === "create" || $method === "edit") {
             $routePath .= "/$method";
@@ -102,6 +108,21 @@ class RouteWorker
             $routePath .= "/{id}";
         }
 
+        $this->storeRouteToState($method, $routeName);
+
         return "\nRoute::$verb('$routePath', [$this->controllerName::class, '$method'])->name('$routeName');";
+    }
+
+    /**
+     * Store the route name to the state
+     * @param string $index
+     * @param string $name
+     * @return void
+     */
+    private function storeRouteToState(string $index, string $name)
+    {
+        $routes = $this->state->getRoutes();
+        $routes[$index] = $name;
+        $this->state->setRoutes($routes);
     }
 }

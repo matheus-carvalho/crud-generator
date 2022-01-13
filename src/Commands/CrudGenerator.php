@@ -31,9 +31,9 @@ class CrudGenerator extends Command
      * @var string
      */
     protected $signature = 'generate:crud 
-                                {table : Table name }
-                                {--resource= : The resource name (camelCase) which will be used to name all files}
-                                {--style= : Specifies the style | [default, none] | Default = default}} 
+                                {table : Table name (snake_case) }
+                                {--resource= : The resource name (PascalCase) which will be used to name all files}
+                                {--style= : Specifies the style | [default, none] | Default = default} 
                                 {--language= : Specifies the language | [br, en] | Default = en}';
 
     /**
@@ -79,10 +79,14 @@ class CrudGenerator extends Command
         }
 
         $this->buildModel($modelName);
+
+        $controllerName = ucfirst($modelName) . "Controller";
+        $this->state->setControllerName($controllerName);
+
+        $this->buildRoutes();
         $this->buildViews();
         $this->buildRequest($modelName);
-        $this->buildController($modelName);
-        $this->buildRoutes();
+        $this->buildController();
     }
 
     /**
@@ -150,16 +154,12 @@ class CrudGenerator extends Command
 
     /**
      * Builds controller
-     * @param string $modelName
      * @return void
      */
-    private function buildController(string $modelName)
+    private function buildController()
     {
-        $controllerName = ucfirst($modelName) . "Controller";
-        $this->state->setControllerName($controllerName);
-
         $this->call('make:controller', [
-            'name' => $controllerName
+            'name' => $this->state->getControllerName()
         ]);
 
         $controllerWorker = new ControllerWorker();

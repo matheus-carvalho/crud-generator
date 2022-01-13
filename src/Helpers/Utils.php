@@ -133,4 +133,24 @@ class Utils
 
         return true;
     }
+
+    /**
+     * Parse a snake_case string to kebab-case
+     * @param string $snaked
+     * @return string
+     */
+    public function snakeToKebab(string $snaked): string
+    {
+        return implode("-", explode("_", $snaked));
+    }
+
+    /**
+     * Parse a PascalCase string to snake_case
+     * @param string $string
+     * @return string
+     */
+    public function pascalToSnake(string $string): string
+    {
+        return strtolower(preg_replace(['/([a-z\d])([A-Z])/', '/([^_])([A-Z][a-z])/'], '$1_$2', $string));
+    }
 }

@@ -55,7 +55,7 @@ class ViewWorker
         $this->fieldList = $this->state->getFieldList();
         $this->translated = $this->state->getTranslated();
 
-        $viewFolder = lcfirst($this->modelName);
+        $viewFolder = $this->utilsHelper->pascalToSnake($this->modelName);
         /** @noinspection PhpUndefinedFunctionInspection */
         $viewsPath = resource_path('views');
         $fullPath = $viewsPath . "/" . $viewFolder;
@@ -110,12 +110,14 @@ class ViewWorker
             [ $this->modelName ]
         );
 
+        $createRoute = $this->state->getRoutes()['create'];
+
         $content = "\n\t<div class=\"row justify-content-around align-items-center mt-20\">";
         $content .= "\n\t\t<div>";
         $content .= "\n\t\t\t<p class=\"list-header\">$itemList</p>";
         $content .= "\n\t\t</div>";
         $content .= "\n\t\t<div>";
-        $content .= "\n\t\t\t<a href=\"{{route('create$this->modelName')}}\" class=\"btn btn-success\">$txtNew &#10004;</a>";
+        $content .= "\n\t\t\t<a href=\"{{route('$createRoute')}}\" class=\"btn btn-success\">$txtNew &#10004;</a>";
         $content .= "\n\t\t</div>";
         $content .= "\n\t</div>";
 
@@ -143,6 +145,9 @@ class ViewWorker
             $this->translated['empty_list'],
             [ $this->modelName ]
         );
+
+        $editRoute = $this->state->getRoutes()['edit'];
+        $deleteRoute = $this->state->getRoutes()['destroy'];
 
         $content = "\n\n\t<div class=\"row overflow-auto\">";
         $content .= "\n\t\t<table class=\"list-table table-stripped mt-20 w-100\">";
@@ -182,10 +187,10 @@ class ViewWorker
         }
         $content .= "\n\t\t\t\t\t<td class=\"row justify-content-start align-items-center\">";
         $content .= "\n\t\t\t\t\t\t<div class=\"action-button\">";
-        $content .= "\n\t\t\t\t\t\t\t<a href=\"{{route('edit$this->modelName', \$item->id)}}\" class=\"btn btn-warning\" title=\"$txtEdit\"> &#9998; </a>";
+        $content .= "\n\t\t\t\t\t\t\t<a href=\"{{route('$editRoute', \$item->id)}}\" class=\"btn btn-warning\" title=\"$txtEdit\"> &#9998; </a>";
         $content .= "\n\t\t\t\t\t\t</div>";
         $content .= "\n\t\t\t\t\t\t<div class=\"action-button\">";
-        $content .= "\n\t\t\t\t\t\t\t<form title=\"$txtDelete\" method=\"post\" action=\"{{route('delete$this->modelName', \$item->id)}}\">";
+        $content .= "\n\t\t\t\t\t\t\t<form title=\"$txtDelete\" method=\"post\" action=\"{{route('$deleteRoute', \$item->id)}}\">";
         $content .= "\n\t\t\t\t\t\t\t\t{!! method_field('DELETE') !!} {!! csrf_field() !!}";
         $content .= "\n\t\t\t\t\t\t\t\t<button class=\"btn btn-danger\"> &times; </button>";
         $content .= "\n\t\t\t\t\t\t\t</form>";
@@ -249,9 +254,10 @@ class ViewWorker
      */
     private function appendCreateHeader(string $txtCreate): string
     {
+        $indexRoute = $this->state->getRoutes()['index'];
         $content = "\n\t<div class=\"mt-20\">";
         $content .= "\n\t\t<ul class=\"breadcrumb\">";
-        $content .= "\n\t\t\t<li><a href=\"{{ route('index$this->modelName') }}\">$this->modelName</a></li>";
+        $content .= "\n\t\t\t<li><a href=\"{{ route('$indexRoute') }}\">$this->modelName</a></li>";
         $content .= "\n\t\t\t<li class='active'>$txtCreate $this->modelName</li>";
         $content .= "\n\t\t</ul>";
         $content .= "\n\t</div>";
@@ -265,12 +271,15 @@ class ViewWorker
      */
     private function appendCreateForm(): string
     {
+        $updateRoute = $this->state->getRoutes()['update'];
+        $storeRoute = $this->state->getRoutes()['store'];
+
         $content = "\n\t<form method=\"post\" ";
         $content .= "\n\t\t@if(isset(\$item))";
-        $content .= "\n\t\t\taction=\"{{ route('update$this->modelName', \$item->id) }}\">";
+        $content .= "\n\t\t\taction=\"{{ route('$updateRoute', \$item->id) }}\">";
         $content .= "\n\t\t\t{!! method_field('PUT') !!}";
         $content .= "\n\t\t@else";
-        $content .= "\n\t\t\taction=\"{{ route('store$this->modelName') }}\">";
+        $content .= "\n\t\t\taction=\"{{ route('$storeRoute') }}\">";
         $content .= "\n\t\t@endif";
         $content .= "\n\t\t{!! csrf_field() !!}";
 

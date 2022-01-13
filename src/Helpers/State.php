@@ -18,10 +18,27 @@ class State
 
     private $paginationPerPage = 5;
 
-    private $fieldList = [];
-    private $foreignKeyModels = [];
-    private $notNullableBooleans = [];
-    private $translated = [];
+    private $fieldList = [''];
+    private $foreignKeyModels = [''];
+    private $notNullableBooleans = [''];
+    private $translated = [''];
+    private $routes = [''];
+
+    /**
+     * @return array
+     */
+    public function getRoutes(): array
+    {
+        return $this->routes;
+    }
+
+    /**
+     * @param array $routes
+     */
+    public function setRoutes(array $routes): void
+    {
+        $this->routes = $routes;
+    }
 
     /**
      * @return int
