@@ -16,7 +16,7 @@ php artisan vendor:publish
 1. Create your migration and fill up the fields.
 2. Open a cmd on project root and type:
 ```bash
-php artisan generate:crud table_name --resource ResourceName
+php artisan generate:crud table_name ResourceName
 ```
 
 # Simple example
@@ -42,7 +42,7 @@ public function up()
 
 3. Generating the CRUD.
 ```bash
-php artisan generate:crud categories --resource Category
+php artisan generate:crud categories Category
 ```
 
 ## Available column types example
@@ -75,7 +75,7 @@ public function up()
 
 3. Generating the CRUD.
 ```bash
-php artisan generate:crud awesome_products --resource AwesomeProduct
+php artisan generate:crud awesome_products AwesomeProduct
 ```
 
 ### Tips
@@ -89,7 +89,7 @@ php artisan generate:crud awesome_products --resource AwesomeProduct
 | Option     | params          | Description                                                      |
 |------------|-----------------|------------------------------------------------------------------|
 | table      | string          | Table name (snake_case).                                         |
-| --resource | string          | Resource name (PascalCase) which will be used to name all files. |
+| resource   | string          | Resource name (PascalCase) which will be used to name all files. |
 | --style    | [default, none] | Specifies the style. Default = default.                          |
 | --language | [br, en]        | Specifies the language. Default = en.                            |
 
@@ -108,7 +108,7 @@ command to apply your changes.
 
 ## Output
 
-After running the `php artisan generate:crud awesome_products --resource AwesomeProduct` command, you'll be able to find these files in your project:
+After running the `php artisan generate:crud awesome_products AwesomeProduct` command, you'll be able to find these files in your project:
 
 <details>
 <summary> App\Http\Controllers\AwesomeProductController.php </summary>

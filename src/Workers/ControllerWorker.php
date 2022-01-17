@@ -223,15 +223,24 @@ class ControllerWorker
      */
     private function appendUpdate(): string
     {
+        $successMessage = $this->translator->parseTranslated(
+            $this->translated['success_messages']['update'],
+            [$this->modelName]
+        );
+        $errorMessage = $this->translator->parseTranslated(
+            $this->translated['error_messages']['update'],
+            [$this->modelName]
+        );
+
         $content  = "\n\n\tpublic function update($this->requestName \$request, int \$id): RedirectResponse";
         $content .= "\n\t{";
         $content  .= "\n\t\t\$data = \$request->validated();";
         $content  .= "\n\n\t\t\$item = $this->modelName::find(\$id);";
         $content  .= "\n\t\t\$update = \$item->update(\$data);";
         $content  .= "\n\t\tif (!\$update) {";
-        $content  .= "\n\t\t\treturn redirect()->back();";
+        $content  .= "\n\t\t\treturn redirect()->back()->with('error', '$errorMessage');";
         $content  .= "\n\t\t}";
-        $content  .= "\n\n\t\treturn redirect()->route('$this->indexRoute');";
+        $content  .= "\n\n\t\treturn redirect()->route('$this->indexRoute')->with('message', '$successMessage');";
         $content  .= "\n\t}";
 
         return $content;

@@ -32,7 +32,7 @@ class CrudGenerator extends Command
      */
     protected $signature = 'generate:crud 
                                 {table : Table name (snake_case) }
-                                {--resource= : The resource name (PascalCase) which will be used to name all files}
+                                {resource : The resource name (PascalCase) which will be used to name all files}
                                 {--style= : Specifies the style | [default, none] | Default = default} 
                                 {--language= : Specifies the language | [br, en] | Default = en}';
 
@@ -64,7 +64,7 @@ class CrudGenerator extends Command
      */
     public function handle()
     {
-        $modelName = $this->option('resource') ?? null;
+        $modelName = $this->argument('resource');
         $migration = $this->argument('table');
 
         if (!$this->validateArguments($modelName, $migration)) {
@@ -74,7 +74,6 @@ class CrudGenerator extends Command
         $this->defineConfigs();
 
         if (!$this->scanMigration()) {
-            $this->error('Invalid migration.');
             return;
         }
 
@@ -97,11 +96,13 @@ class CrudGenerator extends Command
     {
         $migrationWorker = new MigrationWorker();
         if (!$migrationWorker->scan()) {
+            $this->error('Invalid migration (file not found).');
             return false;
         }
 
         $tableName = $this->state->getTableName();
         if (!$tableName) {
+            $this->error('Invalid migration (table not found).');
             return false;
         }
 
@@ -204,7 +205,7 @@ class CrudGenerator extends Command
     private function validateArguments(?string $modelName, string $migration): bool
     {
         if (!$modelName) {
-            $this->error('Not enough arguments (missing: "--resource").');
+            $this->error('Not enough arguments (missing: "resource").');
             return false;
         }
 
@@ -226,25 +227,39 @@ class CrudGenerator extends Command
     private function defineLanguage(): string
     {
         $parameterLanguage = $this->option('language');
+        $availableLanguages = [ "br", "en" ];
 
-        return [
-            'br' => 'br',
-            'en' => 'en'
-        ][$parameterLanguage] ?? config('crudgenerator.language') ?? 'en';
+        if (in_array($parameterLanguage, $availableLanguages)) {
+            return $parameterLanguage;
+        }
+
+        $configLanguage = config('crudgenerator.language');
+        if (in_array($configLanguage, $availableLanguages)) {
+            return $configLanguage;
+        }
+
+        return "en";
     }
 
     private function defineStyle(): string
     {
         $parameterStyle = $this->option('style');
+        $availableStyles = ["default", "none"];
 
-        return [
-            'default' => 'default',
-            'none' => 'none'
-        ][$parameterStyle] ?? config('crudgenerator.style') ?? 'default';
+        if (in_array($parameterStyle, $availableStyles)) {
+            return $parameterStyle;
+        }
+
+        $configStyle = config('crudgenerator.style');
+        if (in_array($configStyle, $availableStyles)) {
+            return $configStyle;
+        }
+
+        return "default";
     }
 
     private function definePaginationPerPage(): int
     {
-        return config('crudgenerator.pagination_per_page') ?? 5;
+        return config('crudgenerator.pagination_per_page') > 0 ? config('crudgenerator.pagination_per_page') : 5;
     }
 }

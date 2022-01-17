@@ -1,6 +1,6 @@
 {
     "name": "matheus-carvalho/crud-generator",
-    "description": "Generate a CRUD with Model, Controller, Routes and Views based on given Migration.",
+    "description": "Generate a CRUD with Model, Controller, routes, FormRequest and views based on given Migration.",
     "type": "library",
     "license": "MIT",
     "authors": [
