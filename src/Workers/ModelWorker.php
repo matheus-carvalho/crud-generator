@@ -2,6 +2,7 @@
 
 namespace Matheuscarvalho\Crudgenerator\Workers;
 
+use Matheuscarvalho\Crudgenerator\Helpers\AvailableColumnTypes;
 use Matheuscarvalho\Crudgenerator\Helpers\State;
 use Matheuscarvalho\Crudgenerator\Helpers\Utils;
 
@@ -39,6 +40,7 @@ class ModelWorker
         $content = $this->appendHeaders($modelName);
         $content .= $this->appendTableName();
         $content .= $this->appendFillable();
+        $content .= $this->appendDates();
 
         $this->utilsHelper->defineNotNullableBooleans();
         $notNullableBooleans = $this->state->getNotNullableBooleans();
@@ -112,6 +114,35 @@ class ModelWorker
     }
 
     /**
+     * Appends the dates to the content
+     * @return string
+     */
+    private function appendDates(): string
+    {
+        $fieldList = $this->state->getFieldList();
+        $dateColumnsTypes = [
+            AvailableColumnTypes::DATETIME,
+            AvailableColumnTypes::DATE,
+            AvailableColumnTypes::TIME,
+        ];
+
+        $content = "\n\n\tprotected \$dates = [\n";
+        foreach($fieldList as $field) {
+            $type = $this->utilsHelper->getFieldType($field);
+            if (!in_array($type, $dateColumnsTypes)) {
+                continue;
+            }
+
+            $dateField = $this->utilsHelper->getStringBetween($field, "'", "'");
+            $content .= "\t\t'$dateField',\n";
+        }
+
+        $content = rtrim($content, ",\n");
+        $content .= "\n\t];";
+        return $content;
+    }
+
+    /**
      * Appends the not nullable booleans to the content
      * @param array $notNullableBooleans
      * @return string
@@ -120,8 +151,9 @@ class ModelWorker
     {
         $content = "\n\n\tpublic static \$notNullableBooleans = [\n";
 
-        foreach ($notNullableBooleans as $notNullableBoolean) {
-            $content .= "\t\t'$notNullableBoolean',\n";
+        foreach ($notNullableBooleans as $key => $value) {
+            $value = $value ? 'true' : 'false';
+            $content .= "\t\t'$key' => " . $value . ",\n";
         }
 
         $content = rtrim($content, ",\n");
@@ -143,11 +175,7 @@ class ModelWorker
         }
 
         foreach ($foreignKeys as $fk) {
-            $array = preg_split('/(?=[A-Z])/', $fk);
-            $foreignId = implode('_', $array);
-            $foreignId = strtolower($foreignId);
-            $foreignId = ltrim($foreignId, $foreignId[0]);
-            $foreignId = $foreignId . "_id";
+            $foreignId = $this->utilsHelper->getForeignKeyNameByModel($fk);
 
             $content .= "\n\n\tpublic function $fk(): BelongsTo";
             $content .= "\n\t{";

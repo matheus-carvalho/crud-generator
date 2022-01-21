@@ -187,8 +187,10 @@ class CrudGenerator extends Command
         $style = $this->defineStyle();
         $this->state->setStyle($style);
 
-        $translator = new Translator();
         $language = $this->defineLanguage();
+        $this->state->setLanguage($language);
+
+        $translator = new Translator();
         $translated = $translator->getTranslated($language);
         $this->state->setTranslated($translated);
 

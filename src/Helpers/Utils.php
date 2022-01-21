@@ -52,8 +52,7 @@ class Utils
         $models = [];
 
         foreach ($fieldList as $field) {
-            $type = $this->getStringBetween($field, "\$table->", "(");
-            if ($type !== AvailableColumnTypes::FOREIGN_ID) {
+            if (!$this->isForeignKey($field)) {
                 continue;
             }
 
@@ -75,14 +74,15 @@ class Utils
         $booleans = [];
 
         foreach ($fieldList as $field) {
-            $type = $this->getStringBetween($field, "\$table->", "(");
+            $type = $this->getFieldType($field);
             if ($type !== AvailableColumnTypes::BOOLEAN) {
                 continue;
             }
 
             if (strpos($field, "->nullable()") === false) {
                 $modelName = $this->getStringBetween($field, "'", "'");
-                $booleans[] = $modelName;
+                $defaultValue = strpos($field, "->default(true)") !== false;
+                $booleans[$modelName] = $defaultValue;
             }
         }
 
@@ -104,7 +104,7 @@ class Utils
                 continue;
             }
 
-            $type = $this->getStringBetween($field, "\$table->", "(");
+            $type = $this->getFieldType($field);
             if (!in_array($type, AvailableColumnTypes::all()) || $type === AvailableColumnTypes::FOREIGN_ID) {
                 continue;
             }
@@ -152,5 +152,60 @@ class Utils
     public function pascalToSnake(string $string): string
     {
         return strtolower(preg_replace(['/([a-z\d])([A-Z])/', '/([^_])([A-Z][a-z])/'], '$1_$2', $string));
+    }
+
+    /**
+     * Check if a field is foreign key
+     * @param string $field
+     * @return bool
+     */
+    public function isForeignKey(string $field): bool
+    {
+        $type = $this->getFieldType($field);
+        return $type === AvailableColumnTypes::FOREIGN_ID;
+    }
+
+    /**
+     * Check if selected language is pt br
+     * @return bool
+     */
+    public function isBrazil(): bool
+    {
+        return $this->state->getLanguage() === "br";
+    }
+
+    /**
+     * Defines the type of field
+     * @param string $field
+     * @return string
+     */
+    public function getFieldType(string $field): string
+    {
+        return $this->getStringBetween($field, "\$table->", "(");
+    }
+
+    /**
+     * Gets the foreign key name based on a foreign key model
+     * @param string $fkModel
+     * @return string
+     */
+    public function getForeignKeyNameByModel(string $fkModel): string
+    {
+        $split = preg_split('/(?=[A-Z])/', $fkModel);
+        $fkName = implode('_', $split);
+        $fkName = strtolower($fkName);
+        $fkName = ltrim($fkName, $fkName[0]);
+        return $fkName . "_id";
+    }
+
+    /**
+     * Return the foreign key humanized name
+     * @param string $fkName
+     * @return string
+     */
+    public function getHumanizedForeignKeyNameByName(string $fkName): string
+    {
+        $humanized = ucwords(rtrim($fkName, "_id"), "_");
+        return str_replace('_', ' ', $humanized);
     }
 }

@@ -72,6 +72,7 @@ class RequestWorker
 
         $content .= $this->appendValidationData();
         $content .= $this->appendRules();
+        $content .= $this->appendAttributes();
         $content .= $this->appendMessages();
 
         $content .= "\n}";
@@ -128,8 +129,8 @@ class RequestWorker
         $content .= "\n\t\t\$data = parent::validationData();";
 
         if ($this->hasNotNullableBooleans) {
-            $content .= "\n\n\t\tforeach ($this->modelName::\$notNullableBooleans as \$notNullableBoolean) {";
-            $content .= "\n\t\t\t\$data[\$notNullableBoolean] = \$data[\$notNullableBoolean] ?? false;";
+            $content .= "\n\n\t\tforeach ($this->modelName::\$notNullableBooleans as \$key => \$value) {";
+            $content .= "\n\t\t\t\$data[\$key] = \$data[\$key] ?? \$value;";
             $content .= "\n\t\t}";
         }
 
@@ -169,8 +170,8 @@ class RequestWorker
 
         $this->foreignKeyCount = 0;
         foreach ($this->state->getForeignKeyModels() as $foreignKey) {
-            $foreignKey = strtolower($foreignKey) . "_id";
-            $content .= "\t\t\t'$foreignKey' => 'required|integer|min:1',\n";
+            $foreignKeyId = $this->utilsHelper->getForeignKeyNameByModel($foreignKey);
+            $content .= "\t\t\t'$foreignKeyId' => 'required|integer|min:1',\n";
             $this->foreignKeyCount++;
         }
 
@@ -178,6 +179,33 @@ class RequestWorker
             $content = rtrim($content, ",\n");
         }
 
+        $content .= "\n\t\t];";
+        $content .= "\n\t}";
+
+        return $content;
+    }
+
+    /**
+     * Appends the attributes method to the content
+     * @return string
+     */
+    private function appendAttributes(): string
+    {
+        if ($this->foreignKeyCount === 0) {
+            return "";
+        }
+
+        $content = "\n\n\tpublic function attributes(): array";
+        $content .= "\n\t{";
+        $content .= "\n\t\treturn [\n";
+
+        foreach ($this->state->getForeignKeyModels() as $foreignKey) {
+            $foreignKeyId = $this->utilsHelper->getForeignKeyNameByModel($foreignKey);
+            $foreignKeyHumanized = $this->utilsHelper->getHumanizedForeignKeyNameByName($foreignKeyId);
+            $content .= "\t\t\t'$foreignKeyId' => '$foreignKeyHumanized',\n";
+        }
+
+        $content = rtrim($content, ",\n");
         $content .= "\n\t\t];";
         $content .= "\n\t}";
 

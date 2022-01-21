@@ -15,6 +15,7 @@ class State
     private $viewFolder = "";
     private $requestName = "";
     private $controllerName = "";
+    private $language = "";
 
     private $paginationPerPage = 5;
 
@@ -230,6 +231,22 @@ class State
     public function setMigration(string $migration): void
     {
         $this->migration = $migration;
+    }
+
+    /**
+     * @return string
+     */
+    public function getLanguage(): string
+    {
+        return $this->language;
+    }
+
+    /**
+     * @param string $language
+     */
+    public function setLanguage(string $language): void
+    {
+        $this->language = $language;
     }
 
     private function __construct() { }

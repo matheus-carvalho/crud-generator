@@ -158,6 +158,18 @@
     color: #5a5a5a;
 }
 
+.item {
+    font-size: 32px;
+}
+
+.active-item {
+    color: green;
+}
+
+.inactive-item {
+    color: red;
+}
+
 /* MARGINS */
 .mt-20 {
     margin-top: 20px;

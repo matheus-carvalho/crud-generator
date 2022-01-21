@@ -39,6 +39,16 @@ class ViewWorker
      */
     private $state;
 
+    /**
+     * @var array
+     */
+    private $foreignKeyFields;
+
+    /**
+     * @var array
+     */
+    private $modelItems;
+
     public function __construct()
     {
         $this->translator = new Translator();
@@ -63,6 +73,8 @@ class ViewWorker
         if (!file_exists($fullPath)) {
             mkdir($viewsPath . "/" . $viewFolder);
         }
+
+        $this->defineForeignKeyFields();
 
         $this->buildIndex($fullPath);
         $this->buildCreate($fullPath);
@@ -154,20 +166,7 @@ class ViewWorker
         $content .= "\n\t\t\t<thead>";
         $content .= "\n\t\t\t\t<tr>";
 
-        $modelItems = [];
-        foreach($this->fieldList as $field) {
-            $modelItem = $this->utilsHelper->getStringBetween($field, "'", "'");
-            if ($modelItem != "id" && $modelItem != "") {
-                if (strpos($modelItem, '_id') !== false) {
-                    $title = rtrim($modelItem, "_id");
-                    $title = str_replace("_", " ", $title);
-                } else {
-                    $title = str_replace("_", " ", $modelItem);
-                }
-                $content .= "\n\t\t\t\t\t<th>" . ucfirst($title) . "</th>";
-                $modelItems[] = $modelItem;
-            }
-        }
+        $content .= $this->getThSessionContent();
         $content .= "\n\t\t\t\t\t<th>$txtActions</th>";
 
         $content .= "\n\t\t\t\t</tr>";
@@ -175,15 +174,8 @@ class ViewWorker
         $content .= "\n\t\t\t<tbody>";
         $content .= "\n\t\t\t@forelse (\$items as \$item)";
         $content .= "\n\t\t\t\t<tr>";
-        foreach ($modelItems as $modelItem) {
-            if (strpos($modelItem, '_id') !== false) {
-                $navigation = rtrim($modelItem, "_id");
-                $navigation = str_replace('_', '', ucwords($navigation, '_'));
-
-                $content .= "\n\t\t\t\t\t<td>{{\$item->".$navigation."->name}}</td>";
-            } else {
-                $content .= "\n\t\t\t\t\t<td>{{\$item->$modelItem}}</td>";
-            }
+        foreach ($this->modelItems as $modelItem) {
+            $content .= $this->getTdItemContent($modelItem);
         }
         $content .= "\n\t\t\t\t\t<td class=\"row justify-content-start align-items-center\">";
         $content .= "\n\t\t\t\t\t\t<div class=\"action-button\">";
@@ -285,13 +277,12 @@ class ViewWorker
 
         foreach($this->fieldList as $field) {
             $modelItem = $this->utilsHelper->getStringBetween($field, "'", "'");
-            if ($modelItem != "id" && $modelItem != "") {
-                if (strpos($modelItem, '_id') !== false) {
-                    $title = rtrim($modelItem, "_id");
-                    $title = str_replace("_", " ", $title);
-                } else {
-                    $title = str_replace("_", " ", $modelItem);
+            if ($this->shouldAddField($modelItem)) {
+                $title = $modelItem;
+                if ($this->isForeignKeyField($modelItem)) {
+                    $title = rtrim($title, "_id");
                 }
+                $title = str_replace("_", " ", $title);
 
                 $content .= $this->getInputType($field, $modelItem, ucfirst($title));
             }
@@ -338,62 +329,88 @@ class ViewWorker
         $defaultHtml .= "\n\t\t\t@enderror";
         $defaultHtml .= "\n\t\t</div>";
 
-        switch ($field) {
-            case AvailableColumnTypes::INTEGER:
-                $inputHtml = "<input class=\"form-control\" id=\"$modelItem\" name=\"$modelItem\" value=\"{{isset(\$item) ? \$item->$modelItem : old('$modelItem')}}\" type=\"number\">";
-                return str_replace("INPUT_HTML", $inputHtml, $defaultHtml);
-            case AvailableColumnTypes::DOUBLE:
-                $inputHtml = "<input class=\"form-control\" id=\"$modelItem\" name=\"$modelItem\" value=\"{{isset(\$item) ? \$item->$modelItem : old('$modelItem')}}\" type=\"number\" step=\"0.01\">";
-                return str_replace("INPUT_HTML", $inputHtml, $defaultHtml);
-            case AvailableColumnTypes::DATE:
-                $inputHtml = "<input class=\"form-control\" id=\"$modelItem\" name=\"$modelItem\" value=\"{{isset(\$item) ? \$item->$modelItem : old('$modelItem')}}\" type=\"date\">";
-                return str_replace("INPUT_HTML", $inputHtml, $defaultHtml);
-            case AvailableColumnTypes::DATETIME:
-                $inputHtml = "<input class=\"form-control\" id=\"$modelItem\" name=\"$modelItem\" value=\"{{isset(\$item) ? str_replace(' ', 'T', \$item->$modelItem) : old('$modelItem')}}\" type=\"datetime-local\">";
-                return str_replace("INPUT_HTML", $inputHtml, $defaultHtml);
-            case AvailableColumnTypes::TIME:
-                $inputHtml = "<input class=\"form-control\" id=\"$modelItem\" name=\"$modelItem\" value=\"{{isset(\$item) ? \$item->$modelItem : old('$modelItem')}}\" type=\"time\">";
-                return str_replace("INPUT_HTML", $inputHtml, $defaultHtml);
-            case AvailableColumnTypes::BOOLEAN:
-                $inputHtml = "<input class=\"form-check-input\" id=\"$modelItem\" name=\"$modelItem\" type=\"checkbox\" value=\"true\"";
-                $inputHtml .= "\n\t\t\t\t@if(isset(\$item) && \$item->$modelItem)";
-                $inputHtml .= "\n\t\t\t\t\tchecked";
-                $inputHtml .= "\n\t\t\t\t@endif";
-                $inputHtml .= "\n\t\t\t>";
-
-                return str_replace("INPUT_HTML", $inputHtml, $defaultHtml);
-            case AvailableColumnTypes::TEXT:
-                $inputHtml = "<textarea class=\"form-control\" id=\"$modelItem\" name=\"$modelItem\">{{isset(\$item) ? \$item->$modelItem : old('$modelItem')}}</textarea>";
-                return str_replace("INPUT_HTML", $inputHtml, $defaultHtml);
-            case AvailableColumnTypes::STRING:
-            default:
-                $inputHtml = "<input class=\"form-control\" id=\"$modelItem\" name=\"$modelItem\" value=\"{{isset(\$item) ? \$item->$modelItem : old('$modelItem')}}\" type=\"text\">";
-                return str_replace("INPUT_HTML", $inputHtml, $defaultHtml);
-            case AvailableColumnTypes::FOREIGN_ID:
-                $inputHtml  = "\n\t\t\t<select name=\"$modelItem\" id=\"$modelItem\" class=\"form-control\">";
-
-                $txtSelect = $this->translated['select'];
-
-                $fkModel = str_replace("_id", "", $modelItem);
-                $ucWordsModel = ucwords($fkModel, "_");
-                $inputHtml .= "\n\t\t\t\t<option value=\"0\">$txtSelect ". str_replace('_', ' ', $ucWordsModel) ."</option>";
-
-                $lcModelList = lcfirst($ucWordsModel);
-                $ucWordsModelList = $lcModelList . "List";
-                $fkVarName = str_replace('_', '', $ucWordsModelList);
-                $inputHtml .= "\n\t\t\t\t@foreach(\$$fkVarName as \$$lcModelList)";
-                $lcModelListId = $lcModelList . "->id";
-                $lcModelListName = $lcModelList . "->name";
-                $inputHtml .= "\n\t\t\t\t\t<option value=\"{{\$$lcModelListId}}\"";
-                $inputHtml .= "\n\t\t\t\t\t\t@if((isset(\$item) && \$$lcModelListId == \$item->$modelItem)||\$$lcModelListId == old('$modelItem')) selected @endif";
-                $inputHtml .= "\n\t\t\t\t\t>";
-                $inputHtml .= "\n\t\t\t\t\t\t{{\$$lcModelListName}}";
-                $inputHtml .= "\n\t\t\t\t\t</option>";
-                $inputHtml .= "\n\t\t\t\t@endforeach";
-                $inputHtml .= "\n\t\t\t</select>";
-
-                return str_replace("INPUT_HTML", $inputHtml, $defaultHtml);
+        if ($field === AvailableColumnTypes::INTEGER) {
+            $inputHtml = "<input class=\"form-control\" id=\"$modelItem\" name=\"$modelItem\" value=\"{{isset(\$item) ? \$item->$modelItem" .
+                " : old('$modelItem')}}\" type=\"number\">";
+            return str_replace("INPUT_HTML", $inputHtml, $defaultHtml);
         }
+
+        if ($field === AvailableColumnTypes::DOUBLE) {
+            $inputHtml = "<input class=\"form-control\" id=\"$modelItem\" name=\"$modelItem\" value=\"{{isset(\$item) ? \$item->$modelItem" .
+                " : old('$modelItem')}}\" type=\"number\" step=\"0.01\">";
+            return str_replace("INPUT_HTML", $inputHtml, $defaultHtml);
+        }
+
+        if ($field === AvailableColumnTypes::DATE) {
+            $inputHtml = "<input class=\"form-control\" id=\"$modelItem\" name=\"$modelItem\" type=\"date\"";
+            $inputHtml .= "\n\t\t\t\t\tvalue=\"{{isset(\$item) && \$item->$modelItem ? \$item->$modelItem" . "->format('Y-m-d') : old('$modelItem')}}\">";
+
+            return str_replace("INPUT_HTML", $inputHtml, $defaultHtml);
+        }
+
+        if ($field === AvailableColumnTypes::DATETIME) {
+            $inputHtml = "<input class=\"form-control\" id=\"$modelItem\" name=\"$modelItem\" type=\"datetime-local\"";
+            $inputHtml .= "\n\t\t\t\t\tvalue=\"{{isset(\$item) ? str_replace(' ', 'T', \$item->$modelItem) : old('$modelItem')}}\">";
+
+            return str_replace("INPUT_HTML", $inputHtml, $defaultHtml);
+        }
+
+        if ($field === AvailableColumnTypes::TIME) {
+            $inputHtml = "<input class=\"form-control\" id=\"$modelItem\" name=\"$modelItem\" type=\"time\"";
+            $inputHtml .= "\n\t\t\t\t\tvalue=\"{{isset(\$item) && \$item->$modelItem ? \$item->$modelItem" . "->format('h:i') : old('$modelItem')}}\">";
+
+            return str_replace("INPUT_HTML", $inputHtml, $defaultHtml);
+        }
+
+        if ($field === AvailableColumnTypes::TEXT) {
+            $inputHtml = "<textarea class=\"form-control\" id=\"$modelItem\" name=\"$modelItem\">{{isset(\$item) ?" .
+                " \$item->$modelItem : old('$modelItem')}}</textarea>";
+            return str_replace("INPUT_HTML", $inputHtml, $defaultHtml);
+        }
+
+        if ($field === AvailableColumnTypes::BOOLEAN) {
+            $inputHtml = "<input class=\"form-check-input\" id=\"$modelItem\" name=\"$modelItem\" type=\"checkbox\" value=\"true\"";
+            $inputHtml .= "\n\t\t\t\t@if(isset(\$item) && \$item->$modelItem)";
+            $inputHtml .= "\n\t\t\t\t\tchecked";
+            $inputHtml .= "\n\t\t\t\t@endif";
+            $inputHtml .= "\n\t\t\t>";
+
+            return str_replace("INPUT_HTML", $inputHtml, $defaultHtml);
+        }
+
+        if ($field === AvailableColumnTypes::FOREIGN_ID) {
+            $inputHtml  = "\n\t\t\t<select name=\"$modelItem\" id=\"$modelItem\" class=\"form-control\">";
+
+            $txtSelect = $this->translated['select'];
+
+            $fkSnakeCased = str_replace("_id", "", $modelItem);
+            $fkHumanized = $this->utilsHelper->getHumanizedForeignKeyNameByName($fkSnakeCased);
+            $inputHtml .= "\n\t\t\t\t<option value=\"0\">$txtSelect $fkHumanized</option>";
+
+            $fkLcFirstSnakeCased = lcfirst(ucwords($fkSnakeCased, "_"));
+            $fkLcFirstSnakeCasedList = $fkLcFirstSnakeCased . "List";
+
+            $fkCamelCasedList = str_replace('_', '', $fkLcFirstSnakeCasedList);
+            $fkCamelCased = str_replace('_', '', $fkLcFirstSnakeCased);
+
+            $fkCamelCasedId = $fkCamelCased . "->id";
+            $fkCamelCasedName = $fkCamelCased . "->name";
+
+            $inputHtml .= "\n\t\t\t\t@foreach(\$$fkCamelCasedList as \$$fkCamelCased)";
+            $inputHtml .= "\n\t\t\t\t\t<option value=\"{{\$$fkCamelCasedId}}\"";
+            $inputHtml .= "\n\t\t\t\t\t\t@if((isset(\$item) && \$$fkCamelCasedId == \$item->$modelItem) || \$$fkCamelCasedId == old('$modelItem')) selected @endif";
+            $inputHtml .= "\n\t\t\t\t\t>";
+            $inputHtml .= "\n\t\t\t\t\t\t{{\$$fkCamelCasedName}}";
+            $inputHtml .= "\n\t\t\t\t\t</option>";
+            $inputHtml .= "\n\t\t\t\t@endforeach";
+            $inputHtml .= "\n\t\t\t</select>";
+
+            return str_replace("INPUT_HTML", $inputHtml, $defaultHtml);
+        }
+
+        $inputHtml = "<input class=\"form-control\" id=\"$modelItem\" name=\"$modelItem\" value=\"{{isset(\$item) ?"
+            . " \$item->$modelItem : old('$modelItem')}}\" type=\"text\">";
+        return str_replace("INPUT_HTML", $inputHtml, $defaultHtml);
     }
 
     /**
@@ -456,6 +473,123 @@ class ViewWorker
         $content .= "\n\t</ul>";
         $content .= "\n\t<small class=\"pager-info\">$txtInfo</small>";
         $content .= "\n@endif";
+
+        return $content;
+    }
+
+    /**
+     * @param string $modelItem
+     * @return bool
+     */
+    private function shouldAddField(string $modelItem): bool
+    {
+        return $modelItem != "id" && $modelItem != "";
+    }
+
+    /**
+     * Check if a field is foreign key
+     * @param string $modelItem
+     * @return bool
+     */
+    private function isForeignKeyField(string $modelItem): bool
+    {
+        return in_array($modelItem, $this->foreignKeyFields);
+    }
+
+    /**
+     * Define the foreign keys
+     * @return void
+     */
+    private function defineForeignKeyFields()
+    {
+        $this->foreignKeyFields = [];
+        foreach($this->fieldList as $field) {
+            if (!$this->utilsHelper->isForeignKey($field)) {
+                continue;
+            }
+
+            $modelItem = $this->utilsHelper->getStringBetween($field, "'", "'");
+            $this->foreignKeyFields[] = $modelItem;
+        }
+    }
+
+    /**
+     * @param array $modelItem
+     * @return string
+     */
+    private function getTdItemContent(array $modelItem): string
+    {
+        $itemName = $modelItem['name'];
+        if ($this->isForeignKeyField($itemName)) {
+            $navigation = rtrim($itemName, "_id");
+            $navigation = str_replace('_', '', ucwords($navigation, '_'));
+
+            return "\n\t\t\t\t\t<td>{{\$item->".$navigation."->name}}</td>";
+        }
+
+        if ($modelItem['type'] === AvailableColumnTypes::BOOLEAN) {
+            $tdItemContent = "\n\t\t\t\t\t<td class=\"item {{\$item->$itemName ? 'active-item' : 'inactive-item'}}\">";
+            $tdItemContent .= "\n\t\t\t\t\t\t{!! \$item->$itemName ? '&#10003;' : '&times;' !!}";
+            $tdItemContent .= "\n\t\t\t\t\t</td>";
+
+            return $tdItemContent;
+        }
+
+        $fullName = "\$item->" . $itemName;
+        if ($modelItem['type'] === AvailableColumnTypes::DATE) {
+            if ($this->utilsHelper->isBrazil()) {
+                return "\n\t\t\t\t\t<td>{{isset($fullName) ? $fullName" . "->format('d/m/Y') : ''}}</td>";
+            }
+
+            return "\n\t\t\t\t\t<td>{{isset($fullName) ? $fullName" . "->format('Y-m-d') : ''}}</td>";
+        }
+
+        if ($modelItem['type'] === AvailableColumnTypes::TIME) {
+            return "\n\t\t\t\t\t<td>{{isset($fullName) ? $fullName" . "->format('h:i') : ''}}</td>";
+        }
+
+        if ($modelItem['type'] === AvailableColumnTypes::DATETIME) {
+            if ($this->utilsHelper->isBrazil()) {
+                return "\n\t\t\t\t\t<td>{{isset($fullName) ? $fullName" . "->format('d/m/Y h:i') : ''}}</td>";
+            }
+            return "\n\t\t\t\t\t<td>{{isset($fullName) ? $fullName" . "->format('Y-m-d h:i') : ''}}</td>";
+        }
+
+        if ($modelItem['type'] === AvailableColumnTypes::DOUBLE) {
+            if ($this->utilsHelper->isBrazil()) {
+                return "\n\t\t\t\t\t<td>{{isset($fullName) ? number_format($fullName, 2, \",\", \".\") : ''}}</td>";
+            }
+            return "\n\t\t\t\t\t<td>{{isset($fullName) ? number_format($fullName, 2) : ''}}</td>";
+        }
+
+        return "\n\t\t\t\t\t<td>{{\$item->$itemName}}</td>";
+    }
+
+    /**
+     * Runs through the model fields and gets the th session of table
+     * @return string
+     */
+    private function getThSessionContent(): string
+    {
+        $content = "";
+        foreach($this->fieldList as $field) {
+            $modelItem = $this->utilsHelper->getStringBetween($field, "'", "'");
+            $type = $this->utilsHelper->getFieldType($field);
+
+            if ($this->shouldAddField($modelItem)) {
+                $title = $modelItem;
+                if ($this->isForeignKeyField($modelItem)) {
+                    $title = rtrim($title, "_id");
+                }
+                $title = str_replace("_", " ", $title);
+                $content .= "\n\t\t\t\t\t<th>" . ucfirst($title) . "</th>";
+
+                $this->modelItems[] = [
+                    "name" => $modelItem,
+                    "type" => $type
+                ];
+            }
+        }
 
         return $content;
     }
